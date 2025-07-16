@@ -3,6 +3,7 @@ import { Provider } from "react-redux";
 import { store } from "lib/redux/store";
 import { ResumeForm } from "components/ResumeForm";
 import { Resume } from "components/Resume";
+import { AnalyzeResumeButton } from "components/AnalyzeResumeButton";
 
 export default function Create() {
   return (
@@ -12,7 +13,8 @@ export default function Create() {
           <div className="col-span-3">
             <ResumeForm />
           </div>
-          <div className="col-span-3">
+          <div className="col-span-3 relative">
+            <AnalyzeResumeButton />
             <Resume />
           </div>
         </div>
