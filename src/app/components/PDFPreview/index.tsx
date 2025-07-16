@@ -17,7 +17,6 @@ import {
   useRegisterReactPDFHyphenationCallback,
 } from "components/fonts/hooks";
 import { NonEnglishFontsCSSLazyLoader } from "components/fonts/NonEnglishFontsCSSLoader";
-import { FlexboxSpacer } from "components/FlexboxSpacer";
 import dynamic from "next/dynamic";
 
 const PDFPreviewComponent = () => {
