@@ -2,8 +2,8 @@
 import { Provider } from "react-redux";
 import { store } from "lib/redux/store";
 import { ResumeForm } from "components/ResumeForm";
-import { Resume } from "components/Resume";
 import { AnalyzeResumeButton } from "components/AnalyzeResumeButton";
+import { PDFPreview } from "components/PDFPreview";
 
 export default function Create() {
   return (
@@ -15,7 +15,7 @@ export default function Create() {
           </div>
           <div className="col-span-3 relative">
             <AnalyzeResumeButton />
-            <Resume />
+            <PDFPreview />
           </div>
         </div>
       </main>
