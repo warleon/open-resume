@@ -115,7 +115,7 @@ export default function ResumeParser() {
     <main className="h-full w-full overflow-hidden">
       <div className="grid md:grid-cols-6">
         {true && (
-          <div className="flex justify-center px-2 md:col-span-3 md:h-[calc(100vh-var(--top-nav-bar-height))] md:justify-end relative">
+          <div className="flex justify-center md:col-span-3 md:h-[calc(100vh-var(--top-nav-bar-height))]  relative">
             {isFromBuilder && (
               <div className="absolute top-1/2 -translate-y-1/2 -left-2 z-10">
                 <Button
@@ -127,12 +127,11 @@ export default function ResumeParser() {
                 </Button>
               </div>
             )}
-            <section className="mt-5 grow px-4 md:max-w-[600px] md:px-0">
-              <div className="aspect-h-[9.5] aspect-w-7">
+            <section className="mt-5 grow px-4">
+              <div className="w-full h-full mx-auto md:p-[var(--resume-padding)]">
                 <iframe src={`${fileUrl}#navpanes=0`} className="h-full w-full" />
               </div>
             </section>
-            <FlexboxSpacer maxWidth={45} className="hidden md:block" />
           </div>
         )}
         <div className="flex px-6 text-gray-900 md:col-span-3 md:h-[calc(100vh-var(--top-nav-bar-height))] md:overflow-y-scroll">
