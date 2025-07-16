@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { readPdf } from "lib/parse-resume-from-pdf/read-pdf";
 import type { TextItems } from "lib/parse-resume-from-pdf/types";
@@ -13,6 +13,8 @@ import { ResumeTable } from "resume-parser/ResumeTable";
 import { FlexboxSpacer } from "components/FlexboxSpacer";
 import { ResumeParserAlgorithmArticle } from "resume-parser/ResumeParserAlgorithmArticle";
 import { Button } from "components/Button";
+import { calculateDetailedResumeSimilarity, getSemaphoreColor } from "lib/resume-similarity";
+import type { Resume } from "lib/redux/types";
 
 const RESUME_EXAMPLES = [
   {
@@ -79,6 +81,31 @@ export default function ResumeParser() {
   const sections = groupLinesIntoSections(lines);
   const resume = extractResumeFromSections(sections);
 
+  // Calculate similarity score when coming from builder
+  const similarityData = useMemo(() => {
+    if (!isFromBuilder) return null;
+    
+    try {
+      const originalResumeData = localStorage.getItem("originalResumeData");
+      if (!originalResumeData) return null;
+      
+      const originalResume: Resume = JSON.parse(originalResumeData);
+      const detailedSimilarity = calculateDetailedResumeSimilarity(originalResume, resume);
+      const colorConfig = getSemaphoreColor(detailedSimilarity.overall);
+      
+      return {
+        overall: detailedSimilarity.overall,
+        sections: detailedSimilarity.sections,
+        weights: detailedSimilarity.weights,
+        percentage: Math.round(detailedSimilarity.overall * 100),
+        ...colorConfig,
+      };
+    } catch (error) {
+      console.error("Failed to calculate similarity:", error);
+      return null;
+    }
+  }, [isFromBuilder, resume]);
+
 
 
   useEffect(() => {
@@ -96,6 +123,8 @@ export default function ResumeParser() {
       if (generatedUrl && generatedUrl.startsWith("blob:")) {
         URL.revokeObjectURL(generatedUrl);
       }
+      // Clean up original resume data
+      localStorage.removeItem("originalResumeData");
     };
   }, []);
 
@@ -107,6 +136,7 @@ export default function ResumeParser() {
     }
     localStorage.removeItem("generatedResumeUrl");
     localStorage.removeItem("generatedResumeFileName");
+    localStorage.removeItem("originalResumeData");
     
     router.push("/resume-builder");
   };
@@ -150,6 +180,95 @@ export default function ResumeParser() {
                   Tracking Systems (ATS). The better the parsing results, the more
                   ATS-friendly your resume is.
                 </Paragraph>
+                {similarityData && (
+                  <div className={cx(
+                    "mt-4 p-4 rounded-md border",
+                    similarityData.bgColor,
+                    similarityData.borderColor
+                  )}>
+                    {/* Overall Score Header */}
+                    <div className="flex items-center justify-between mb-4">
+                      <span className={cx("font-semibold text-lg", similarityData.color)}>
+                        ATS Similarity Score
+                      </span>
+                      <div className={cx(
+                        "px-4 py-2 rounded-full text-lg font-bold",
+                        similarityData.bgColor,
+                        similarityData.color,
+                        "ring-2 ring-white"
+                      )}>
+                        {similarityData.percentage}%
+                      </div>
+                    </div>
+                    
+                    {/* Overall Description */}
+                    <p className={cx("text-sm mb-4", similarityData.color)}>
+                      This score indicates how accurately an ATS would parse your resume compared to your original data.
+                      {similarityData.percentage >= 80 && " Excellent! Your resume is very ATS-friendly."}
+                      {similarityData.percentage >= 60 && similarityData.percentage < 80 && " Good, but there may be some parsing issues with certain fields."}
+                      {similarityData.percentage < 60 && " Consider reformatting your resume for better ATS compatibility."}
+                    </p>
+
+                    {/* Section Breakdown */}
+                    <div className="space-y-3">
+                      <h4 className={cx("font-semibold text-sm", similarityData.color)}>
+                        Section Breakdown:
+                      </h4>
+                      
+                                             {Object.entries(similarityData.sections).map(([sectionKey, score]) => {
+                         const sectionScore = Math.round(score * 100);
+                         const sectionColors = getSemaphoreColor(score);
+                         const weight = similarityData.weights[sectionKey as keyof typeof similarityData.weights];
+                         const sectionLabels = {
+                           profile: "Profile & Contact",
+                           workExperiences: "Work Experience", 
+                           educations: "Education",
+                           projects: "Projects",
+                           skills: "Skills"
+                         };
+                         
+                         // Get the appropriate progress bar color based on score
+                         const getProgressBarColor = (score: number) => {
+                           if (score >= 0.8) return "#22c55e"; // green-500
+                           if (score >= 0.6) return "#eab308"; // yellow-500
+                           return "#ef4444"; // red-500
+                         };
+                         
+                         return (
+                           <div key={sectionKey} className="flex items-center justify-between py-2 px-3 bg-white/50 rounded">
+                             <div className="flex items-center space-x-2">
+                               <span className="text-sm font-medium text-gray-700">
+                                 {sectionLabels[sectionKey as keyof typeof sectionLabels]}
+                               </span>
+                               <span className="text-xs text-gray-500">
+                                 (weight: {Math.round(weight * 100)}%)
+                               </span>
+                             </div>
+                             <div className="flex items-center space-x-2">
+                               {/* Progress bar */}
+                               <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                 <div 
+                                   className="h-full transition-all duration-300 rounded-full"
+                                   style={{ 
+                                     width: `${sectionScore}%`,
+                                     backgroundColor: getProgressBarColor(score)
+                                   }}
+                                 />
+                               </div>
+                               <span className={cx(
+                                 "px-2 py-1 rounded text-xs font-semibold min-w-[3rem] text-center",
+                                 sectionColors.bgColor,
+                                 sectionColors.color
+                               )}>
+                                 {sectionScore}%
+                               </span>
+                             </div>
+                           </div>
+                         );
+                       })}
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <Paragraph smallMarginTop={true}>

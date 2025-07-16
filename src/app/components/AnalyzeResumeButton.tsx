@@ -31,6 +31,9 @@ const AnalyzeResumeButtonComponent = () => {
         localStorage.setItem("generatedResumeUrl", objectUrl);
         localStorage.setItem("generatedResumeFileName", `${resume.profile.name || "Generated"} - Resume.pdf`);
         
+        // Store the original resume data for similarity comparison
+        localStorage.setItem("originalResumeData", JSON.stringify(resume));
+        
         // Navigate to the parser page
         router.push("/resume-parser?source=builder");
       } catch (error) {

@@ -1,0 +1,282 @@
+import type { Resume, ResumeProfile, ResumeWorkExperience, ResumeEducation, ResumeProject, ResumeSkills } from "lib/redux/types";
+
+/**
+ * Calculate the similarity between two strings using Jaccard similarity
+ * Jaccard similarity = |A ∩ B| / |A ∪ B|
+ */
+function calculateStringSimilarity(str1: string, str2: string): number {
+  if (!str1 && !str2) return 1; // Both empty strings are identical
+  if (!str1 || !str2) return 0; // One empty, one not
+  
+  const normalize = (str: string) => str.toLowerCase().trim().replace(/\s+/g, ' ');
+  const s1 = normalize(str1);
+  const s2 = normalize(str2);
+  
+  if (s1 === s2) return 1; // Exact match
+  
+  // Split into words for Jaccard similarity
+  const words1 = new Set(s1.split(' ').filter(word => word.length > 0));
+  const words2 = new Set(s2.split(' ').filter(word => word.length > 0));
+  
+  const intersection = new Set(Array.from(words1).filter(word => words2.has(word)));
+  const union = new Set([...Array.from(words1), ...Array.from(words2)]);
+  
+  return union.size === 0 ? 0 : intersection.size / union.size;
+}
+
+/**
+ * Calculate similarity between two arrays of strings
+ */
+function calculateArraySimilarity(arr1: string[], arr2: string[]): number {
+  if (arr1.length === 0 && arr2.length === 0) return 1;
+  if (arr1.length === 0 || arr2.length === 0) return 0;
+  
+  let totalSimilarity = 0;
+  let comparisons = 0;
+  
+  // Compare each item in arr1 with the best match in arr2
+  for (const item1 of arr1) {
+    let bestMatch = 0;
+    for (const item2 of arr2) {
+      const similarity = calculateStringSimilarity(item1, item2);
+      bestMatch = Math.max(bestMatch, similarity);
+    }
+    totalSimilarity += bestMatch;
+    comparisons++;
+  }
+  
+  // Compare each item in arr2 with the best match in arr1
+  for (const item2 of arr2) {
+    let bestMatch = 0;
+    for (const item1 of arr1) {
+      const similarity = calculateStringSimilarity(item1, item2);
+      bestMatch = Math.max(bestMatch, similarity);
+    }
+    totalSimilarity += bestMatch;
+    comparisons++;
+  }
+  
+  return comparisons === 0 ? 0 : totalSimilarity / comparisons;
+}
+
+/**
+ * Calculate similarity between two profiles
+ */
+function calculateProfileSimilarity(profile1: ResumeProfile, profile2: ResumeProfile): number {
+  const weights = {
+    name: 0.25,
+    email: 0.2,
+    phone: 0.15,
+    url: 0.1,
+    summary: 0.2,
+    location: 0.1,
+  };
+  
+  let totalScore = 0;
+  totalScore += calculateStringSimilarity(profile1.name, profile2.name) * weights.name;
+  totalScore += calculateStringSimilarity(profile1.email, profile2.email) * weights.email;
+  totalScore += calculateStringSimilarity(profile1.phone, profile2.phone) * weights.phone;
+  totalScore += calculateStringSimilarity(profile1.url, profile2.url) * weights.url;
+  totalScore += calculateStringSimilarity(profile1.summary, profile2.summary) * weights.summary;
+  totalScore += calculateStringSimilarity(profile1.location, profile2.location) * weights.location;
+  
+  return totalScore;
+}
+
+/**
+ * Calculate similarity between two work experience arrays
+ */
+function calculateWorkExperienceSimilarity(work1: ResumeWorkExperience[], work2: ResumeWorkExperience[]): number {
+  if (work1.length === 0 && work2.length === 0) return 1;
+  if (work1.length === 0 || work2.length === 0) return 0;
+  
+  let totalSimilarity = 0;
+  let comparisons = 0;
+  
+  // Compare each work experience in work1 with the best match in work2
+  for (const exp1 of work1) {
+    let bestMatch = 0;
+    for (const exp2 of work2) {
+      const companySim = calculateStringSimilarity(exp1.company, exp2.company);
+      const titleSim = calculateStringSimilarity(exp1.jobTitle, exp2.jobTitle);
+      const dateSim = calculateStringSimilarity(exp1.date, exp2.date);
+      const descSim = calculateArraySimilarity(exp1.descriptions, exp2.descriptions);
+      
+      const similarity = (companySim * 0.3 + titleSim * 0.3 + dateSim * 0.1 + descSim * 0.3);
+      bestMatch = Math.max(bestMatch, similarity);
+    }
+    totalSimilarity += bestMatch;
+    comparisons++;
+  }
+  
+  return comparisons === 0 ? 0 : totalSimilarity / comparisons;
+}
+
+/**
+ * Calculate similarity between two education arrays
+ */
+function calculateEducationSimilarity(edu1: ResumeEducation[], edu2: ResumeEducation[]): number {
+  if (edu1.length === 0 && edu2.length === 0) return 1;
+  if (edu1.length === 0 || edu2.length === 0) return 0;
+  
+  let totalSimilarity = 0;
+  let comparisons = 0;
+  
+  for (const education1 of edu1) {
+    let bestMatch = 0;
+    for (const education2 of edu2) {
+      const schoolSim = calculateStringSimilarity(education1.school, education2.school);
+      const degreeSim = calculateStringSimilarity(education1.degree, education2.degree);
+      const dateSim = calculateStringSimilarity(education1.date, education2.date);
+      const gpaSim = calculateStringSimilarity(education1.gpa, education2.gpa);
+      const descSim = calculateArraySimilarity(education1.descriptions, education2.descriptions);
+      
+      const similarity = (schoolSim * 0.3 + degreeSim * 0.3 + dateSim * 0.1 + gpaSim * 0.1 + descSim * 0.2);
+      bestMatch = Math.max(bestMatch, similarity);
+    }
+    totalSimilarity += bestMatch;
+    comparisons++;
+  }
+  
+  return comparisons === 0 ? 0 : totalSimilarity / comparisons;
+}
+
+/**
+ * Calculate similarity between two project arrays
+ */
+function calculateProjectSimilarity(proj1: ResumeProject[], proj2: ResumeProject[]): number {
+  if (proj1.length === 0 && proj2.length === 0) return 1;
+  if (proj1.length === 0 || proj2.length === 0) return 0;
+  
+  let totalSimilarity = 0;
+  let comparisons = 0;
+  
+  for (const project1 of proj1) {
+    let bestMatch = 0;
+    for (const project2 of proj2) {
+      const projectSim = calculateStringSimilarity(project1.project, project2.project);
+      const dateSim = calculateStringSimilarity(project1.date, project2.date);
+      const descSim = calculateArraySimilarity(project1.descriptions, project2.descriptions);
+      
+      const similarity = (projectSim * 0.3 + dateSim * 0.1 + descSim * 0.6);
+      bestMatch = Math.max(bestMatch, similarity);
+    }
+    totalSimilarity += bestMatch;
+    comparisons++;
+  }
+  
+  return comparisons === 0 ? 0 : totalSimilarity / comparisons;
+}
+
+/**
+ * Calculate similarity between two skills objects
+ */
+function calculateSkillsSimilarity(skills1: ResumeSkills, skills2: ResumeSkills): number {
+  // Compare featured skills
+  const featuredSkillsNames1 = skills1.featuredSkills.map(fs => fs.skill);
+  const featuredSkillsNames2 = skills2.featuredSkills.map(fs => fs.skill);
+  const featuredSim = calculateArraySimilarity(featuredSkillsNames1, featuredSkillsNames2);
+  
+  // Compare skill descriptions
+  const descSim = calculateArraySimilarity(skills1.descriptions, skills2.descriptions);
+  
+  return (featuredSim * 0.4 + descSim * 0.6);
+}
+
+export interface DetailedSimilarityScore {
+  overall: number;
+  sections: {
+    profile: number;
+    workExperiences: number;
+    educations: number;
+    projects: number;
+    skills: number;
+  };
+  weights: {
+    profile: number;
+    workExperiences: number;
+    educations: number;
+    projects: number;
+    skills: number;
+  };
+}
+
+/**
+ * Calculate overall similarity between two resumes
+ * @param originalResume - The original resume from the builder
+ * @param parsedResume - The parsed resume from PDF parsing
+ * @returns Similarity score between 0 and 1
+ */
+export function calculateResumeSimilarity(originalResume: Resume, parsedResume: Resume): number {
+  const detailed = calculateDetailedResumeSimilarity(originalResume, parsedResume);
+  return detailed.overall;
+}
+
+/**
+ * Calculate detailed similarity between two resumes including section breakdowns
+ * @param originalResume - The original resume from the builder
+ * @param parsedResume - The parsed resume from PDF parsing
+ * @returns Detailed similarity scores with section breakdowns
+ */
+export function calculateDetailedResumeSimilarity(originalResume: Resume, parsedResume: Resume): DetailedSimilarityScore {
+  const weights = {
+    profile: 0.25,
+    workExperiences: 0.3,
+    educations: 0.2,
+    projects: 0.15,
+    skills: 0.1,
+  };
+  
+  const profileSim = calculateProfileSimilarity(originalResume.profile, parsedResume.profile);
+  const workSim = calculateWorkExperienceSimilarity(originalResume.workExperiences, parsedResume.workExperiences);
+  const eduSim = calculateEducationSimilarity(originalResume.educations, parsedResume.educations);
+  const projSim = calculateProjectSimilarity(originalResume.projects, parsedResume.projects);
+  const skillsSim = calculateSkillsSimilarity(originalResume.skills, parsedResume.skills);
+  
+  const totalSimilarity = (
+    profileSim * weights.profile +
+    workSim * weights.workExperiences +
+    eduSim * weights.educations +
+    projSim * weights.projects +
+    skillsSim * weights.skills
+  );
+  
+  return {
+    overall: Math.max(0, Math.min(1, totalSimilarity)),
+    sections: {
+      profile: Math.max(0, Math.min(1, profileSim)),
+      workExperiences: Math.max(0, Math.min(1, workSim)),
+      educations: Math.max(0, Math.min(1, eduSim)),
+      projects: Math.max(0, Math.min(1, projSim)),
+      skills: Math.max(0, Math.min(1, skillsSim)),
+    },
+    weights,
+  };
+}
+
+/**
+ * Get semaphore color based on similarity score
+ * @param score - Similarity score between 0 and 1
+ * @returns Color configuration object
+ */
+export function getSemaphoreColor(score: number): { color: string; bgColor: string; borderColor: string } {
+  if (score >= 0.8) {
+    return {
+      color: "text-green-800",
+      bgColor: "bg-green-100",
+      borderColor: "border-green-300",
+    };
+  } else if (score >= 0.6) {
+    return {
+      color: "text-yellow-800",
+      bgColor: "bg-yellow-100",
+      borderColor: "border-yellow-300",
+    };
+  } else {
+    return {
+      color: "text-red-800",
+      bgColor: "bg-red-100",
+      borderColor: "border-red-300",
+    };
+  }
+} 
