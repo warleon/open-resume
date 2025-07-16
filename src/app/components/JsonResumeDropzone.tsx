@@ -1,0 +1,313 @@
+import { useState } from "react";
+import { DocumentArrowUpIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { LockClosedIcon } from "@heroicons/react/24/solid";
+import { useAppDispatch } from "lib/redux/hooks";
+import { setResume } from "lib/redux/resumeSlice";
+import { cx } from "lib/cx";
+import type { Resume } from "lib/redux/types";
+
+interface JsonResumeSchema {
+  basics?: {
+    name?: string;
+    label?: string;
+    image?: string;
+    email?: string;
+    phone?: string;
+    url?: string;
+    summary?: string;
+    location?: {
+      address?: string;
+      postalCode?: string;
+      city?: string;
+      countryCode?: string;
+      region?: string;
+    };
+    profiles?: Array<{
+      network?: string;
+      username?: string;
+      url?: string;
+    }>;
+  };
+  work?: Array<{
+    name?: string;
+    position?: string;
+    url?: string;
+    startDate?: string;
+    endDate?: string;
+    summary?: string;
+    highlights?: string[];
+  }>;
+  volunteer?: Array<{
+    organization?: string;
+    position?: string;
+    url?: string;
+    startDate?: string;
+    endDate?: string;
+    summary?: string;
+    highlights?: string[];
+  }>;
+  education?: Array<{
+    institution?: string;
+    url?: string;
+    area?: string;
+    studyType?: string;
+    startDate?: string;
+    endDate?: string;
+    score?: string;
+    courses?: string[];
+  }>;
+  skills?: Array<{
+    name?: string;
+    level?: string;
+    keywords?: string[];
+  }>;
+  projects?: Array<{
+    name?: string;
+    startDate?: string;
+    endDate?: string;
+    description?: string;
+    highlights?: string[];
+    url?: string;
+  }>;
+  [key: string]: any;
+}
+
+const mapJsonResumeToInternalFormat = (jsonResume: JsonResumeSchema): Resume => {
+  const { basics, work = [], education = [], skills = [], projects = [] } = jsonResume;
+
+  // Map profile
+  const profile = {
+    name: basics?.name || "",
+    email: basics?.email || "",
+    phone: basics?.phone || "",
+    url: basics?.url || "",
+    summary: basics?.summary || "",
+    location: basics?.location 
+      ? `${basics.location.city || ""}, ${basics.location.region || ""} ${basics.location.postalCode || ""}`.trim()
+      : "",
+  };
+
+  // Map work experiences
+  const workExperiences = work.map(job => ({
+    company: job.name || "",
+    jobTitle: job.position || "",
+    date: job.startDate && job.endDate 
+      ? `${job.startDate} to ${job.endDate}`
+      : job.startDate || "",
+    descriptions: job.highlights || (job.summary ? [job.summary] : []),
+  }));
+
+  // Map education
+  const educations = education.map(edu => ({
+    school: edu.institution || "",
+    degree: `${edu.studyType || ""} in ${edu.area || ""}`.trim(),
+    date: edu.startDate && edu.endDate 
+      ? `${edu.startDate} to ${edu.endDate}`
+      : edu.startDate || "",
+    gpa: edu.score || "",
+    descriptions: edu.courses || [],
+  }));
+
+  // Map projects
+  const mappedProjects = projects.map(proj => ({
+    project: proj.name || "",
+    date: proj.startDate && proj.endDate 
+      ? `${proj.startDate} to ${proj.endDate}`
+      : proj.startDate || "",
+    descriptions: proj.highlights || (proj.description ? [proj.description] : []),
+  }));
+
+  // Map skills
+  const featuredSkills = skills.slice(0, 6).map(skill => ({
+    skill: skill.name || "",
+    rating: skill.level === "Master" ? 5 : 
+            skill.level === "Advanced" ? 4 : 
+            skill.level === "Intermediate" ? 3 : 
+            skill.level === "Beginner" ? 2 : 3,
+  }));
+
+  const skillDescriptions = skills.flatMap(skill => 
+    skill.keywords || []
+  );
+
+  return {
+    profile,
+    workExperiences: workExperiences.length > 0 ? workExperiences : [{ company: "", jobTitle: "", date: "", descriptions: [] }],
+    educations: educations.length > 0 ? educations : [{ school: "", degree: "", date: "", gpa: "", descriptions: [] }],
+    projects: mappedProjects.length > 0 ? mappedProjects : [{ project: "", date: "", descriptions: [] }],
+    skills: {
+      featuredSkills: featuredSkills.length > 0 ? featuredSkills : [{ skill: "", rating: 0 }],
+      descriptions: skillDescriptions,
+    },
+    custom: {
+      descriptions: [],
+    },
+  };
+};
+
+const defaultFileState = {
+  name: "",
+  size: 0,
+  fileUrl: "",
+};
+
+export const JsonResumeDropzone = ({
+  className,
+}: {
+  className?: string;
+}) => {
+  const [file, setFile] = useState(defaultFileState);
+  const [isHoveredOnDropzone, setIsHoveredOnDropzone] = useState(false);
+  const [hasInvalidFile, setHasInvalidFile] = useState(false);
+  const [error, setError] = useState<string>("");
+  const dispatch = useAppDispatch();
+
+  const hasFile = Boolean(file.name);
+
+  const setNewFile = (newFile: File) => {
+    if (file.fileUrl) {
+      URL.revokeObjectURL(file.fileUrl);
+    }
+
+    const { name, size } = newFile;
+    const fileUrl = URL.createObjectURL(newFile);
+    setFile({ name, size, fileUrl });
+    setError("");
+    setHasInvalidFile(false);
+  };
+
+  const onDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const newFile = event.dataTransfer.files[0];
+    if (newFile.name.endsWith(".json")) {
+      setNewFile(newFile);
+    } else {
+      setHasInvalidFile(true);
+      setError("Only JSON files are supported");
+    }
+    setIsHoveredOnDropzone(false);
+  };
+
+  const onInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
+
+    const newFile = files[0];
+    setNewFile(newFile);
+  };
+
+  const onRemove = () => {
+    if (file.fileUrl) {
+      URL.revokeObjectURL(file.fileUrl);
+    }
+    setFile(defaultFileState);
+    setError("");
+    setHasInvalidFile(false);
+  };
+
+  const onImportClick = async () => {
+    try {
+      if (!file.fileUrl) return;
+
+      const response = await fetch(file.fileUrl);
+      const jsonText = await response.text();
+      const jsonData: JsonResumeSchema = JSON.parse(jsonText);
+
+      const resume = mapJsonResumeToInternalFormat(jsonData);
+      dispatch(setResume(resume));
+      
+      setError("");
+      onRemove(); // Clean up after successful import
+    } catch (err) {
+      setError("Invalid JSON file or unsupported format");
+      console.error("JSON import error:", err);
+    }
+  };
+
+  const getFileSizeString = (fileSizeB: number) => {
+    const fileSizeKB = fileSizeB / 1024;
+    const fileSizeMB = fileSizeKB / 1024;
+    if (fileSizeKB < 1000) {
+      return fileSizeKB.toPrecision(3) + " KB";
+    } else {
+      return fileSizeMB.toPrecision(3) + " MB";
+    }
+  };
+
+  return (
+    <div
+      className={cx(
+        "flex justify-center rounded-md border-2 border-dashed border-gray-300 px-6 py-8",
+        isHoveredOnDropzone && "border-sky-400",
+        className
+      )}
+      onDragOver={(event) => {
+        event.preventDefault();
+        setIsHoveredOnDropzone(true);
+      }}
+      onDragLeave={() => setIsHoveredOnDropzone(false)}
+      onDrop={onDrop}
+    >
+      <div className="text-center space-y-3">
+        <DocumentArrowUpIcon className="mx-auto h-12 w-12 text-gray-400" />
+        
+        {!hasFile ? (
+          <>
+            <p className="text-lg font-semibold text-gray-700">
+              Drop JSON Resume file here
+            </p>
+            <p className="text-sm text-gray-500">
+              Supports JSON Resume schema format
+            </p>
+            <p className="flex justify-center text-sm text-gray-500">
+              <LockClosedIcon className="mr-1 mt-1 h-3 w-3 text-gray-400" />
+              File data is used locally and never leaves your browser
+            </p>
+          </>
+        ) : (
+          <div className="flex items-center justify-center gap-3">
+            <div className="font-semibold text-gray-900">
+              {file.name} - {getFileSizeString(file.size)}
+            </div>
+            <button
+              type="button"
+              className="outline-theme-blue rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-500"
+              title="Remove file"
+              onClick={onRemove}
+            >
+              <XMarkIcon className="h-6 w-6" />
+            </button>
+          </div>
+        )}
+
+        <div className="pt-4">
+          {!hasFile ? (
+            <label className="within-outline-theme-purple cursor-pointer rounded-full bg-primary px-6 pb-2.5 pt-2 font-semibold shadow-sm">
+              Browse JSON file
+              <input
+                type="file"
+                className="sr-only"
+                accept=".json"
+                onChange={onInputChange}
+              />
+            </label>
+          ) : (
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={onImportClick}
+            >
+              Import JSON Resume <span aria-hidden="true">→</span>
+            </button>
+          )}
+          
+          {(hasInvalidFile || error) && (
+            <p className="mt-4 text-red-400">
+              {error || "Only JSON files are supported"}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}; 

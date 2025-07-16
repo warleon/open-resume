@@ -14,6 +14,7 @@ import { SkillsForm } from "components/ResumeForm/SkillsForm";
 import { ThemeForm } from "components/ResumeForm/ThemeForm";
 import { CustomForm } from "components/ResumeForm/CustomForm";
 import { FlexboxSpacer } from "components/FlexboxSpacer";
+import { JsonResumeDropzone } from "components/JsonResumeDropzone";
 import { cx } from "lib/cx";
 
 const formTypeToComponent: { [type in ShowForm]: () => JSX.Element } = {
@@ -41,12 +42,27 @@ export const ResumeForm = () => {
       onMouseLeave={() => setIsHover(false)}
     >
       <section className="flex max-w-2xl flex-col gap-8 p-[var(--resume-padding)]">
-        <ProfileForm />
-        {formsOrder.map((form) => {
-          const Component = formTypeToComponent[form];
-          return <Component key={form} />;
-        })}
-        <ThemeForm />
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              Import from JSON Resume
+            </h2>
+            <JsonResumeDropzone />
+          </div>
+          <div className="border-t border-gray-200 pt-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              Manual Entry
+            </h2>
+            <div className="space-y-8">
+              <ProfileForm />
+              {formsOrder.map((form) => {
+                const Component = formTypeToComponent[form];
+                return <Component key={form} />;
+              })}
+              <ThemeForm />
+            </div>
+          </div>
+        </div>
         <br />
       </section>
       <FlexboxSpacer maxWidth={50} className="hidden md:block" />
