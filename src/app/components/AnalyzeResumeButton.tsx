@@ -1,6 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useAppSelector } from "lib/redux/hooks";
 import { selectResume } from "lib/redux/resumeSlice";
 import { selectSettings } from "lib/redux/settingsSlice";
@@ -8,11 +8,17 @@ import { ResumePDF } from "components/Resume/ResumePDF";
 import { usePDF } from "@react-pdf/renderer";
 import { Button } from "components/Button";
 import dynamic from "next/dynamic";
+import { convertToJsonResume } from "lib/convert-to-json-resume";
 
 const AnalyzeResumeButtonComponent = () => {
   const router = useRouter();
   const resume = useAppSelector(selectResume);
   const settings = useAppSelector(selectSettings);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [currentPdfBlob, setCurrentPdfBlob] = useState<Blob | null>(null);
+  
+  // Check if JSON Resume theme is selected
+  const isJsonResumeTheme = settings.jsonResumeTheme !== "default";
   
   const document = useMemo(
     () => <ResumePDF resume={resume} settings={settings} isPDF={true} />,
@@ -21,11 +27,59 @@ const AnalyzeResumeButtonComponent = () => {
 
   const [instance] = usePDF({ document });
 
+  // Generate JSON Resume theme PDF when custom theme is selected
+  useEffect(() => {
+    const generateJsonThemePdf = async () => {
+      if (!isJsonResumeTheme) {
+        setCurrentPdfBlob(null);
+        return;
+      }
+
+      setIsGenerating(true);
+      
+      try {
+        const jsonResume = convertToJsonResume(resume);
+        
+        const response = await fetch('/api/render-theme', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            resume: jsonResume,
+            theme: settings.jsonResumeTheme,
+            format: 'pdf'
+          }),
+        });
+
+        if (response.ok) {
+          const blob = await response.blob();
+          setCurrentPdfBlob(blob);
+        } else {
+          console.error('AnalyzeResumeButton: Failed to generate JSON theme PDF');
+          setCurrentPdfBlob(null);
+        }
+      } catch (error) {
+        console.error('AnalyzeResumeButton: Error generating JSON theme PDF:', error);
+        setCurrentPdfBlob(null);
+      } finally {
+        setIsGenerating(false);
+      }
+    };
+
+    if (isJsonResumeTheme) {
+      generateJsonThemePdf();
+    }
+  }, [isJsonResumeTheme, settings.jsonResumeTheme, resume]);
+
+  // Use the appropriate blob based on theme selection
+  const activePdfBlob = isJsonResumeTheme ? currentPdfBlob : instance.blob;
+
   const handleAnalyzeResume = async () => {
-    if (instance.blob) {
+    if (activePdfBlob) {
       try {
         // Create object URL from blob for PDF.js compatibility
-        const objectUrl = URL.createObjectURL(instance.blob);
+        const objectUrl = URL.createObjectURL(activePdfBlob);
         
         // Store the object URL for the parser to use
         localStorage.setItem("generatedResumeUrl", objectUrl);
@@ -42,7 +96,7 @@ const AnalyzeResumeButtonComponent = () => {
     }
   };
 
-  const isReady = !!instance.blob;
+  const isReady = !!activePdfBlob && !isGenerating;
 
   return (
     <div className="absolute top-1/2 -translate-y-1/2 -right-2 z-10">
