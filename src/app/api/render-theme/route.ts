@@ -56,8 +56,14 @@ export async function POST(request: NextRequest) {
         const pdfBuffer = await page.pdf({
           printBackground: true,
           width: "210mm", // A4 width
-          height: `${await page.evaluate(() => document.body.scrollHeight)}px`,
+          //height: `${await page.evaluate(() => document.body.scrollHeight)}px`,
+          height: "297mm", // A4 height
           preferCSSPageSize: true,
+          format: "A4",
+          margin: {
+            top: "4mm",
+            bottom: "4mm",
+          },
         });
 
         return new NextResponse(pdfBuffer, {
