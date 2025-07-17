@@ -86,7 +86,7 @@ const PDFPreviewComponent = () => {
     if (isJsonResumeTheme) {
       generateJsonThemePdf();
     }
-  }, [isJsonResumeTheme, settings.jsonResumeTheme, resume, pdfUrl]);
+  }, [isJsonResumeTheme, settings.jsonResumeTheme, resume]);
 
   // Update PDF when document changes (for default theme only)
   useEffect(() => {
@@ -107,7 +107,7 @@ const PDFPreviewComponent = () => {
       const objectUrl = URL.createObjectURL(instance.blob);
       setPdfUrl(objectUrl);
     }
-  }, [instance.blob, isJsonResumeTheme, pdfUrl]);
+  }, [instance.blob, isJsonResumeTheme]);
 
   // Cleanup on unmount
   useEffect(() => {
