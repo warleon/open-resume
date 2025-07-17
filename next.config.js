@@ -11,6 +11,13 @@ const nextConfig = {
     // https://webpack.js.org/configuration/resolve/#resolvealias
     config.resolve.alias.canvas = false;
     config.resolve.alias.encoding = false;
+    
+    // Enable top-level await for resumed library
+    config.experiments = {
+      ...config.experiments,
+      topLevelAwait: true,
+    };
+    
     return config;
   },
 };

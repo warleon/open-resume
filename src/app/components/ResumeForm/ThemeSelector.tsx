@@ -1,88 +1,163 @@
-import React from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "lib/redux/hooks";
 import { changeSettings, selectSettings } from "lib/redux/settingsSlice";
+import { selectResume } from "lib/redux/resumeSlice";
 import { BaseForm } from "components/ResumeForm/Form";
-import { SwatchIcon } from "@heroicons/react/24/outline";
+import { SwatchIcon, EyeIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
+import { convertToJsonResume } from "lib/convert-to-json-resume";
 
-interface ThemePreset {
+interface JsonResumeTheme {
+  id: string;
   name: string;
-  description: string;
-  themeColor: string;
-  fontFamily: string;
-  fontSize: string;
-  documentSize: string;
+  description?: string;
 }
 
-const THEME_PRESETS: ThemePreset[] = [
+const DEFAULT_THEMES: JsonResumeTheme[] = [
   {
-    name: "Professional Blue",
-    description: "Clean and professional look with blue accents",
-    themeColor: "#1e40af",
-    fontFamily: "Roboto",
-    fontSize: "11",
-    documentSize: "Letter",
+    id: "default",
+    name: "Default",
+    description: "A default theme"
   },
   {
-    name: "Modern Gray",
-    description: "Sleek modern design with gray tones",
-    themeColor: "#4b5563",
-    fontFamily: "Open Sans",
-    fontSize: "10.5",
-    documentSize: "Letter",
+    id: "even",
+    name: "Even",
+    description: "A flat design with CSS grid layout and dark/light modes"
   },
   {
-    name: "Creative Purple",
-    description: "Stand out with creative purple styling",
-    themeColor: "#7c3aed",
-    fontFamily: "Lato",
-    fontSize: "11",
-    documentSize: "Letter",
-  },
-  {
-    name: "Classic Black",
-    description: "Timeless black and white combination",
-    themeColor: "#000000",
-    fontFamily: "Merriweather",
-    fontSize: "11",
-    documentSize: "Letter",
-  },
-  {
-    name: "Warm Orange",
-    description: "Friendly and approachable orange theme",
-    themeColor: "#ea580c",
-    fontFamily: "Montserrat",
-    fontSize: "10.5",
-    documentSize: "Letter",
-  },
-  {
-    name: "Tech Green",
-    description: "Perfect for tech roles with green accents",
-    themeColor: "#059669",
-    fontFamily: "Roboto",
-    fontSize: "11",
-    documentSize: "Letter",
-  },
+    id: "microdata",
+    name: "Microdata",
+    description: "SEO-friendly theme with structured data microdata"
+  }
 ];
 
 export const ThemeSelector: React.FC = () => {
   const dispatch = useAppDispatch();
   const settings = useAppSelector(selectSettings);
+  const resume = useAppSelector(selectResume);
+  const [availableThemes, setAvailableThemes] = useState<JsonResumeTheme[]>(DEFAULT_THEMES);
+  const [selectedTheme, setSelectedTheme] = useState<string>("default");
+  const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 
-  const applyThemePreset = (preset: ThemePreset) => {
-    dispatch(changeSettings({ field: "themeColor", value: preset.themeColor }));
-    dispatch(changeSettings({ field: "fontFamily", value: preset.fontFamily }));
-    dispatch(changeSettings({ field: "fontSize", value: preset.fontSize }));
-    dispatch(changeSettings({ field: "documentSize", value: preset.documentSize }));
+  // Load available themes from API
+  useEffect(() => {
+    const loadThemes = async () => {
+      try {
+        const response = await fetch('/api/render-theme');
+        if (response.ok) {
+          const data = await response.json();
+          setAvailableThemes(data.themes);
+        }
+      } catch (error) {
+        console.error('Failed to load themes:', error);
+        // Fallback to default themes
+        setAvailableThemes(DEFAULT_THEMES);
+      }
+    };
+
+    loadThemes();
+  }, []);
+
+  const generatePreview = useCallback(async (themeId: string) => {
+    setIsGeneratingPreview(true);
+    try {
+      const jsonResume = convertToJsonResume(resume);
+      
+      const response = await fetch('/api/render-theme', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          resume: jsonResume,
+          theme: themeId,
+          format: 'html'
+        }),
+      });
+
+      if (response.ok) {
+        const html = await response.text();
+        const blob = new Blob([html], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        
+        // Clean up previous URL
+        if (previewUrl) {
+          URL.revokeObjectURL(previewUrl);
+        }
+        
+        setPreviewUrl(url);
+      } else {
+        console.error('Failed to generate preview');
+      }
+    } catch (error) {
+      console.error('Error generating preview:', error);
+    } finally {
+      setIsGeneratingPreview(false);
+    }
+  }, [resume, previewUrl]);
+
+  const downloadPdf = useCallback(async (themeId: string) => {
+    setIsDownloadingPdf(true);
+    try {
+      const jsonResume = convertToJsonResume(resume);
+      
+      const response = await fetch('/api/render-theme', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          resume: jsonResume,
+          theme: themeId,
+          format: 'pdf'
+        }),
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${resume.profile.name || 'resume'}-${themeId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } else {
+        console.error('Failed to download PDF');
+      }
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+    } finally {
+      setIsDownloadingPdf(false);
+    }
+  }, [resume]);
+
+  const handleThemeSelect = (themeId: string) => {
+    if (themeId === "default") return;
+    setSelectedTheme(themeId);
+    generatePreview(themeId);
   };
 
-  const isCurrentPreset = (preset: ThemePreset) => {
-    return (
-      settings.themeColor === preset.themeColor &&
-      settings.fontFamily === preset.fontFamily &&
-      settings.fontSize === preset.fontSize &&
-      settings.documentSize === preset.documentSize
-    );
+  const handlePreviewClick = (themeId: string) => {
+    if (themeId === "default") return;
+    generatePreview(themeId);
   };
+
+  const handleDownloadClick = (themeId: string) => {
+    if (themeId === "default") return;
+    downloadPdf(themeId);
+  };
+
+  // Clean up URL on unmount
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   return (
     <BaseForm>
@@ -90,49 +165,86 @@ export const ThemeSelector: React.FC = () => {
         <div className="flex items-center gap-2 mb-4">
           <SwatchIcon className="h-6 w-6 text-gray-600" aria-hidden="true" />
           <h3 className="text-lg font-semibold tracking-wide text-gray-900">
-            Quick Theme Presets
+            JSON Resume Themes
           </h3>
         </div>
         
         <p className="text-sm text-gray-600 mb-6">
-          Choose from our curated theme combinations to quickly style your resume.
+          Choose from professional JSON Resume themes powered by the resumed library and puppeteer.
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {THEME_PRESETS.map((preset, index) => (
+        <div className="grid grid-cols-1 gap-4">
+          {availableThemes.map((theme) => (
             <div
-              key={index}
+              key={theme.id}
               className={`relative cursor-pointer rounded-lg border p-4 hover:shadow-md transition-all ${
-                isCurrentPreset(preset)
+                selectedTheme === theme.id
                   ? "border-blue-500 bg-blue-50 ring-2 ring-blue-500"
                   : "border-gray-200 hover:border-gray-300"
               }`}
-              onClick={() => applyThemePreset(preset)}
+              onClick={() => handleThemeSelect(theme.id)}
             >
-              {isCurrentPreset(preset) && (
+              {selectedTheme === theme.id && (
                 <div className="absolute top-2 right-2">
                   <div className="h-2 w-2 rounded-full bg-blue-500"></div>
                 </div>
               )}
               
-              <div className="flex items-center gap-3 mb-2">
-                <div
-                  className="h-6 w-6 rounded border border-gray-300"
-                  style={{ backgroundColor: preset.themeColor }}
-                ></div>
-                <h4 className="font-medium text-gray-900">{preset.name}</h4>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-medium text-gray-900">{theme.name}</h4>
+                <div className="flex gap-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePreviewClick(theme.id);
+                    }}
+                    disabled={isGeneratingPreview}
+                    className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-800 disabled:opacity-50"
+                    title="Preview theme"
+                  >
+                    <EyeIcon className="h-3 w-3" />
+                    {isGeneratingPreview ? 'Loading...' : 'Preview'}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDownloadClick(theme.id);
+                    }}
+                    disabled={isDownloadingPdf}
+                    className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-green-600 hover:text-green-800 disabled:opacity-50"
+                    title="Download PDF"
+                  >
+                    <ArrowDownTrayIcon className="h-3 w-3" />
+                    {isDownloadingPdf ? 'Generating...' : 'PDF'}
+                  </button>
+                </div>
               </div>
               
-              <p className="text-sm text-gray-600 mb-3">{preset.description}</p>
+              {theme.description && (
+                <p className="text-sm text-gray-600 mb-3">{theme.description}</p>
+              )}
               
-              <div className="text-xs text-gray-500 space-y-1">
-                <div>Font: {preset.fontFamily}</div>
-                <div>Size: {preset.fontSize}pt</div>
-                <div>Format: {preset.documentSize}</div>
+              <div className="text-xs text-gray-500">
+                Theme ID: {theme.id}
               </div>
             </div>
           ))}
         </div>
+
+        {previewUrl && (
+          <div className="mt-6">
+            <h4 className="text-md font-medium text-gray-900 mb-2">
+              Theme Preview - {selectedTheme}
+            </h4>
+            <div className="border rounded-lg overflow-hidden" style={{ height: '500px' }}>
+              <iframe
+                src={previewUrl}
+                className="w-full h-full"
+                title={`Preview of ${selectedTheme} theme`}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </BaseForm>
   );
