@@ -2,6 +2,7 @@
 import { useState, useMemo } from "react";
 import { ResumeIframeCSR } from "components/Resume/ResumeIFrame";
 import { ResumePDF } from "components/Resume/ResumePDF";
+import { JsonResumeRenderer } from "components/Resume/JsonResumeRenderer";
 import {
   ResumeControlBarCSR,
   ResumeControlBarBorder,
@@ -29,6 +30,9 @@ export const Resume = () => {
   useRegisterReactPDFFont();
   useRegisterReactPDFHyphenationCallback(settings.fontFamily);
 
+  // Check if JSON Resume theme is selected
+  const isJsonResumeTheme = settings.jsonResumeTheme !== "default";
+
   return (
     <>
       <NonEnglishFontsCSSLazyLoader />
@@ -36,17 +40,23 @@ export const Resume = () => {
         <FlexboxSpacer maxWidth={50} className="hidden md:block" />
         <div className="relative">
           <section className="h-[calc(100vh-var(--top-nav-bar-height)-var(--resume-control-bar-height))] overflow-hidden md:p-[var(--resume-padding)]">
-            <ResumeIframeCSR
-              documentSize={settings.documentSize}
-              scale={scale}
-              enablePDFViewer={DEBUG_RESUME_PDF_FLAG}
-            >
-              <ResumePDF
-                resume={resume}
-                settings={settings}
-                isPDF={DEBUG_RESUME_PDF_FLAG}
-              />
-            </ResumeIframeCSR>
+            {isJsonResumeTheme ? (
+              <div className="h-full w-full bg-white shadow-lg" style={{ transform: `scale(${scale})`, transformOrigin: 'top left' }}>
+                <JsonResumeRenderer theme={settings.jsonResumeTheme} />
+              </div>
+            ) : (
+              <ResumeIframeCSR
+                documentSize={settings.documentSize}
+                scale={scale}
+                enablePDFViewer={DEBUG_RESUME_PDF_FLAG}
+              >
+                <ResumePDF
+                  resume={resume}
+                  settings={settings}
+                  isPDF={DEBUG_RESUME_PDF_FLAG}
+                />
+              </ResumeIframeCSR>
+            )}
           </section>
           <ResumeControlBarCSR
             scale={scale}

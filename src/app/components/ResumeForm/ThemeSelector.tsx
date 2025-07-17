@@ -1,9 +1,9 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "lib/redux/hooks";
 import { changeSettings, selectSettings } from "lib/redux/settingsSlice";
 import { selectResume } from "lib/redux/resumeSlice";
 import { BaseForm } from "components/ResumeForm/Form";
-import { SwatchIcon, EyeIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
+import { SwatchIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 import { convertToJsonResume } from "lib/convert-to-json-resume";
 
 interface JsonResumeTheme {
@@ -35,10 +35,9 @@ export const ThemeSelector: React.FC = () => {
   const settings = useAppSelector(selectSettings);
   const resume = useAppSelector(selectResume);
   const [availableThemes, setAvailableThemes] = useState<JsonResumeTheme[]>(DEFAULT_THEMES);
-  const [selectedTheme, setSelectedTheme] = useState<string>("default");
-  const [previewUrl, setPreviewUrl] = useState<string>("");
-  const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+  
+  const selectedTheme = settings.jsonResumeTheme;
 
   // Load available themes from API
   useEffect(() => {
@@ -59,49 +58,11 @@ export const ThemeSelector: React.FC = () => {
     loadThemes();
   }, []);
 
-  const generatePreview = useCallback(async (themeId: string) => {
-    setIsGeneratingPreview(true);
-    try {
-      const jsonResume = convertToJsonResume(resume);
-      
-      const response = await fetch('/api/render-theme', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          resume: jsonResume,
-          theme: themeId,
-          format: 'html'
-        }),
-      });
-
-      if (response.ok) {
-        const html = await response.text();
-        const blob = new Blob([html], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
-        
-        // Clean up previous URL
-        if (previewUrl) {
-          URL.revokeObjectURL(previewUrl);
-        }
-        
-        setPreviewUrl(url);
-      } else {
-        console.error('Failed to generate preview');
-      }
-    } catch (error) {
-      console.error('Error generating preview:', error);
-    } finally {
-      setIsGeneratingPreview(false);
-    }
-  }, [resume, previewUrl]);
-
-  const downloadPdf = useCallback(async (themeId: string) => {
+  const downloadPdf = async (themeId: string) => {
     setIsDownloadingPdf(true);
     try {
       const jsonResume = convertToJsonResume(resume);
-      
+
       const response = await fetch('/api/render-theme', {
         method: 'POST',
         headers: {
@@ -132,32 +93,20 @@ export const ThemeSelector: React.FC = () => {
     } finally {
       setIsDownloadingPdf(false);
     }
-  }, [resume]);
-
-  const handleThemeSelect = (themeId: string) => {
-    if (themeId === "default") return;
-    setSelectedTheme(themeId);
-    generatePreview(themeId);
   };
 
-  const handlePreviewClick = (themeId: string) => {
-    if (themeId === "default") return;
-    generatePreview(themeId);
+  const handleThemeSelect = (themeId: string) => {
+    if (themeId === "default") {
+      dispatch(changeSettings({ field: "jsonResumeTheme", value: "default" }));
+    } else {
+      dispatch(changeSettings({ field: "jsonResumeTheme", value: themeId }));
+    }
   };
 
   const handleDownloadClick = (themeId: string) => {
     if (themeId === "default") return;
     downloadPdf(themeId);
   };
-
-  // Clean up URL on unmount
-  useEffect(() => {
-    return () => {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
-    };
-  }, [previewUrl]);
 
   return (
     <BaseForm>
@@ -170,7 +119,7 @@ export const ThemeSelector: React.FC = () => {
         </div>
         
         <p className="text-sm text-gray-600 mb-6">
-          Choose from professional JSON Resume themes powered by the resumed library and puppeteer.
+          Choose from professional JSON Resume themes powered by the resumed library and puppeteer. The preview will appear in the main resume preview.
         </p>
 
         <div className="grid grid-cols-1 gap-4">
@@ -192,32 +141,22 @@ export const ThemeSelector: React.FC = () => {
               
               <div className="flex items-center justify-between mb-2">
                 <h4 className="font-medium text-gray-900">{theme.name}</h4>
-                <div className="flex gap-2">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handlePreviewClick(theme.id);
-                    }}
-                    disabled={isGeneratingPreview}
-                    className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-800 disabled:opacity-50"
-                    title="Preview theme"
-                  >
-                    <EyeIcon className="h-3 w-3" />
-                    {isGeneratingPreview ? 'Loading...' : 'Preview'}
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDownloadClick(theme.id);
-                    }}
-                    disabled={isDownloadingPdf}
-                    className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-green-600 hover:text-green-800 disabled:opacity-50"
-                    title="Download PDF"
-                  >
-                    <ArrowDownTrayIcon className="h-3 w-3" />
-                    {isDownloadingPdf ? 'Generating...' : 'PDF'}
-                  </button>
-                </div>
+                {theme.id !== "default" && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownloadClick(theme.id);
+                      }}
+                      disabled={isDownloadingPdf}
+                      className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-green-600 hover:text-green-800 disabled:opacity-50"
+                      title="Download PDF"
+                    >
+                      <ArrowDownTrayIcon className="h-3 w-3" />
+                      {isDownloadingPdf ? 'Generating...' : 'PDF'}
+                    </button>
+                  </div>
+                )}
               </div>
               
               {theme.description && (
@@ -231,20 +170,7 @@ export const ThemeSelector: React.FC = () => {
           ))}
         </div>
 
-        {previewUrl && (
-          <div className="mt-6">
-            <h4 className="text-md font-medium text-gray-900 mb-2">
-              Theme Preview - {selectedTheme}
-            </h4>
-            <div className="border rounded-lg overflow-hidden" style={{ height: '500px' }}>
-              <iframe
-                src={previewUrl}
-                className="w-full h-full"
-                title={`Preview of ${selectedTheme} theme`}
-              />
-            </div>
-          </div>
-        )}
+
       </div>
     </BaseForm>
   );

@@ -17,13 +17,18 @@ import {
   useRegisterReactPDFHyphenationCallback,
 } from "components/fonts/hooks";
 import { NonEnglishFontsCSSLazyLoader } from "components/fonts/NonEnglishFontsCSSLoader";
+import { convertToJsonResume } from "lib/convert-to-json-resume";
 import dynamic from "next/dynamic";
 
 const PDFPreviewComponent = () => {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isLoadingJsonTheme, setIsLoadingJsonTheme] = useState(false);
   const resume = useAppSelector(selectResume);
   const settings = useAppSelector(selectSettings);
+
+  // Check if JSON Resume theme is selected
+  const isJsonResumeTheme = settings.jsonResumeTheme !== "default";
 
   const document = useMemo(
     () => <ResumePDF resume={resume} settings={settings} isPDF={true} />,
@@ -35,14 +40,64 @@ const PDFPreviewComponent = () => {
   useRegisterReactPDFFont();
   useRegisterReactPDFHyphenationCallback(settings.fontFamily);
 
-  // Update PDF when document changes
+  // Generate JSON Resume theme PDF
   useEffect(() => {
-    update();
-  }, [update, document]);
+    const generateJsonThemePdf = async () => {
+      if (!isJsonResumeTheme) return;
 
-  // Create object URL when PDF blob is ready
+      setIsLoadingJsonTheme(true);
+      
+      try {
+        const jsonResume = convertToJsonResume(resume);
+        
+        const response = await fetch('/api/render-theme', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            resume: jsonResume,
+            theme: settings.jsonResumeTheme,
+            format: 'pdf'
+          }),
+        });
+
+        if (response.ok) {
+          const blob = await response.blob();
+          
+          // Clean up previous URL
+          if (pdfUrl) {
+            URL.revokeObjectURL(pdfUrl);
+          }
+          
+          // Create new object URL for JSON theme PDF
+          const objectUrl = URL.createObjectURL(blob);
+          setPdfUrl(objectUrl);
+        } else {
+          console.error('PDFPreview: Failed to generate JSON theme PDF');
+        }
+      } catch (error) {
+        console.error('PDFPreview: Error generating JSON theme PDF:', error);
+      } finally {
+        setIsLoadingJsonTheme(false);
+      }
+    };
+
+    if (isJsonResumeTheme) {
+      generateJsonThemePdf();
+    }
+  }, [isJsonResumeTheme, settings.jsonResumeTheme, resume, pdfUrl]);
+
+  // Update PDF when document changes (for default theme only)
   useEffect(() => {
-    if (instance.blob) {
+    if (!isJsonResumeTheme) {
+      update();
+    }
+  }, [update, document, isJsonResumeTheme]);
+
+  // Create object URL when PDF blob is ready (for default theme only)
+  useEffect(() => {
+    if (!isJsonResumeTheme && instance.blob) {
       // Clean up previous URL
       if (pdfUrl) {
         URL.revokeObjectURL(pdfUrl);
@@ -52,7 +107,7 @@ const PDFPreviewComponent = () => {
       const objectUrl = URL.createObjectURL(instance.blob);
       setPdfUrl(objectUrl);
     }
-  }, [instance.blob]);
+  }, [instance.blob, isJsonResumeTheme, pdfUrl]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -125,11 +180,16 @@ const PDFPreviewComponent = () => {
                 <iframe 
                   src={`${pdfUrl}#navpanes=0`} 
                   className="h-full w-full border border-gray-300 rounded-md" 
-                  title="Resume PDF Preview"
+                  title={isJsonResumeTheme ? `JSON Resume - ${settings.jsonResumeTheme} theme` : "Resume PDF Preview"}
                 />
               ) : (
                 <div className="h-full w-full border border-gray-300 rounded-md bg-gray-100 flex items-center justify-center">
-                  <div className="text-gray-500">Generating PDF preview...</div>
+                  <div className="text-gray-500">
+                    {isLoadingJsonTheme 
+                      ? `Generating ${settings.jsonResumeTheme} theme preview...` 
+                      : "Generating PDF preview..."
+                    }
+                  </div>
                 </div>
               )}
             </div>
@@ -141,8 +201,8 @@ const PDFPreviewComponent = () => {
               {/* Download Resume Button */}
               <a
                 className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-0.5 hover:bg-gray-100"
-                href={instance.url!}
-                download={fileName}
+                href={isJsonResumeTheme ? pdfUrl || "#" : instance.url!}
+                download={isJsonResumeTheme ? `${resume.profile.name || 'Resume'} - ${settings.jsonResumeTheme}.pdf` : fileName}
               >
                 <ArrowDownTrayIcon className="h-4 w-4" />
                 <span className="whitespace-nowrap">Download Resume</span>
