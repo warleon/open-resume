@@ -15,8 +15,8 @@ interface JsonResumeTheme {
 const DEFAULT_THEMES: JsonResumeTheme[] = [
   {
     id: "default",
-    name: "Default",
-    description: "A default theme"
+    name: "Default OpenResume",
+    description: "The original OpenResume theme with customizable colors and fonts"
   },
   {
     id: "even",
@@ -46,7 +46,12 @@ export const ThemeSelector: React.FC = () => {
         const response = await fetch('/api/render-theme');
         if (response.ok) {
           const data = await response.json();
-          setAvailableThemes(data.themes);
+          // Always include the default theme at the beginning
+          const allThemes = [
+            DEFAULT_THEMES[0], // Default OpenResume theme
+            ...data.themes.filter((theme: JsonResumeTheme) => theme.id !== 'default')
+          ];
+          setAvailableThemes(allThemes);
         }
       } catch (error) {
         console.error('Failed to load themes:', error);
@@ -119,7 +124,7 @@ export const ThemeSelector: React.FC = () => {
         </div>
         
         <p className="text-sm text-gray-600 mb-6">
-          Choose from professional JSON Resume themes powered by the resumed library and puppeteer. The preview will appear in the main resume preview.
+          Choose between the default OpenResume theme or professional JSON Resume themes. The preview will appear in the main resume preview.
         </p>
 
         <div className="grid grid-cols-1 gap-4">
