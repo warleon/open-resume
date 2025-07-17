@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "test": "jest --watch",
-    "test:ci": "jest --ci"
+    "test:ci": "jest --ci",
+    "sync-themes": "node scripts/sync-themes.js"
   },
   "dependencies": {
     "@heroicons/react": "^2.0.18",
@@ -21,6 +22,8 @@
     "autoprefixer": "10.4.14",
     "eslint": "8.41.0",
     "eslint-config-next": "13.4.4",
+    "jsonresume-theme-even": "^0.23.0",
+    "jsonresume-theme-microdata": "^0.2.0",
     "next": "13.4.4",
     "pdfjs": "^2.5.0",
     "pdfjs-dist": "^3.7.107",
@@ -32,8 +35,6 @@
     "react-frame-component": "^5.2.6",
     "react-redux": "^8.0.7",
     "resumed": "^3.0.0",
-    "jsonresume-theme-even": "^0.23.0",
-    "jsonresume-theme-microdata": "^0.2.0",
     "tailwind-scrollbar": "^3.0.4",
     "tailwindcss": "3.3.2",
     "typescript": "5.0.4"

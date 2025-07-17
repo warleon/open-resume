@@ -12,51 +12,50 @@ interface JsonResumeTheme {
   description?: string;
 }
 
-const DEFAULT_THEMES: JsonResumeTheme[] = [
-  {
-    id: "default",
-    name: "Default OpenResume",
-    description: "The original OpenResume theme with customizable colors and fonts"
-  },
-  {
-    id: "even",
-    name: "Even",
-    description: "A flat design with CSS grid layout and dark/light modes"
-  },
-  {
-    id: "microdata",
-    name: "Microdata",
-    description: "SEO-friendly theme with structured data microdata"
-  }
-];
+// Only keep the default OpenResume theme as hardcoded
+const DEFAULT_OPENRESUME_THEME: JsonResumeTheme = {
+  id: "default",
+  name: "Default OpenResume",
+  description: "The original OpenResume theme with customizable colors and fonts"
+};
 
 export const ThemeSelector: React.FC = () => {
   const dispatch = useAppDispatch();
   const settings = useAppSelector(selectSettings);
   const resume = useAppSelector(selectResume);
-  const [availableThemes, setAvailableThemes] = useState<JsonResumeTheme[]>(DEFAULT_THEMES);
+  const [availableThemes, setAvailableThemes] = useState<JsonResumeTheme[]>([DEFAULT_OPENRESUME_THEME]);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+  const [isLoadingThemes, setIsLoadingThemes] = useState(true);
   
   const selectedTheme = settings.jsonResumeTheme;
 
   // Load available themes from API
   useEffect(() => {
     const loadThemes = async () => {
+      setIsLoadingThemes(true);
       try {
         const response = await fetch('/api/render-theme');
         if (response.ok) {
           const data = await response.json();
-          // Always include the default theme at the beginning
+          // Combine default OpenResume theme with dynamically loaded JSON Resume themes
           const allThemes = [
-            DEFAULT_THEMES[0], // Default OpenResume theme
-            ...data.themes.filter((theme: JsonResumeTheme) => theme.id !== 'default')
+            DEFAULT_OPENRESUME_THEME,
+            ...data.themes.map((theme: any) => ({
+              id: theme.id,
+              name: theme.name,
+              description: `JSON Resume theme: ${theme.name}`
+            }))
           ];
           setAvailableThemes(allThemes);
+        } else {
+          console.warn('Failed to load themes from API, using default theme only');
         }
       } catch (error) {
         console.error('Failed to load themes:', error);
-        // Fallback to default themes
-        setAvailableThemes(DEFAULT_THEMES);
+        // Keep only the default theme on error
+        setAvailableThemes([DEFAULT_OPENRESUME_THEME]);
+      } finally {
+        setIsLoadingThemes(false);
       }
     };
 
@@ -91,27 +90,45 @@ export const ThemeSelector: React.FC = () => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       } else {
-        console.error('Failed to download PDF');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Failed to download PDF:', errorData.error || 'Unknown error');
+        alert(`Failed to download PDF: ${errorData.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error downloading PDF:', error);
+      alert('Error downloading PDF. Please try again.');
     } finally {
       setIsDownloadingPdf(false);
     }
   };
 
   const handleThemeSelect = (themeId: string) => {
-    if (themeId === "default") {
-      dispatch(changeSettings({ field: "jsonResumeTheme", value: "default" }));
-    } else {
-      dispatch(changeSettings({ field: "jsonResumeTheme", value: themeId }));
-    }
+    dispatch(changeSettings({ field: "jsonResumeTheme", value: themeId }));
   };
 
   const handleDownloadClick = (themeId: string) => {
     if (themeId === "default") return;
     downloadPdf(themeId);
   };
+
+  if (isLoadingThemes) {
+    return (
+      <BaseForm>
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 mb-4">
+            <SwatchIcon className="h-6 w-6 text-gray-600" aria-hidden="true" />
+            <h3 className="text-lg font-semibold tracking-wide text-gray-900">
+              JSON Resume Themes
+            </h3>
+          </div>
+          <div className="text-center py-8">
+            <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+            <p className="mt-2 text-sm text-gray-600">Loading available themes...</p>
+          </div>
+        </div>
+      </BaseForm>
+    );
+  }
 
   return (
     <BaseForm>
@@ -124,7 +141,8 @@ export const ThemeSelector: React.FC = () => {
         </div>
         
         <p className="text-sm text-gray-600 mb-6">
-          Choose between the default OpenResume theme or professional JSON Resume themes. The preview will appear in the main resume preview.
+          Choose between the default OpenResume theme or professional JSON Resume themes. 
+          {availableThemes.length > 1 && ` Found ${availableThemes.length - 1} additional theme${availableThemes.length > 2 ? 's' : ''} from your dependencies.`}
         </p>
 
         <div className="grid grid-cols-1 gap-4">
@@ -170,12 +188,25 @@ export const ThemeSelector: React.FC = () => {
               
               <div className="text-xs text-gray-500">
                 Theme ID: {theme.id}
+                {theme.id !== "default" && " • JSON Resume Theme"}
               </div>
             </div>
           ))}
         </div>
 
-
+        {availableThemes.length === 1 && (
+          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+            <p className="text-sm text-yellow-800">
+              <strong>💡 Tip:</strong> To add more JSON Resume themes:
+              <br />
+              1. Install: <code className="bg-yellow-100 px-1 rounded text-xs">npm install jsonresume-theme-[name]</code>
+              <br />
+              2. Sync: <code className="bg-yellow-100 px-1 rounded text-xs">npm run sync-themes</code>
+              <br />
+              3. Restart dev server - themes appear automatically! 🎉
+            </p>
+          </div>
+        )}
       </div>
     </BaseForm>
   );

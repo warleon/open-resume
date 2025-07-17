@@ -1,17 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { render } from "resumed";
 import puppeteer from "puppeteer";
-
-// Import JSON resume themes
-import * as even from "jsonresume-theme-even";
-import * as microdata from "jsonresume-theme-microdata";
-
-const AVAILABLE_THEMES = {
-  "even": even,
-  "microdata": microdata,
-} as const;
-
-export type JsonResumeTheme = keyof typeof AVAILABLE_THEMES;
+import { AVAILABLE_THEMES, JsonResumeTheme } from "./themes";
 
 interface RenderRequest {
   resume: object; // JSON Resume format
@@ -98,10 +88,18 @@ export async function POST(request: NextRequest) {
 
 // GET endpoint to list available themes
 export async function GET() {
-  const themes = Object.keys(AVAILABLE_THEMES).map(key => ({
-    id: key,
-    name: key.charAt(0).toUpperCase() + key.slice(1).replace(/-/g, ' '),
-  }));
+  try {
+    const themes = Object.keys(AVAILABLE_THEMES).map(key => ({
+      id: key,
+      name: key.charAt(0).toUpperCase() + key.slice(1).replace(/-/g, ' '),
+    }));
 
-  return NextResponse.json({ themes });
-} 
+    return NextResponse.json({ themes });
+  } catch (error) {
+    console.error("Error getting themes:", error);
+    return NextResponse.json(
+      { error: "Failed to get available themes" },
+      { status: 500 }
+    );
+  }
+}
