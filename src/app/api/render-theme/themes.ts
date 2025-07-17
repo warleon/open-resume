@@ -6,13 +6,17 @@
 //
 // To regenerate this file: npm run sync-themes
 //
+import * as crewshinTheme from "jsonresume-theme-crewshin";
 import * as evenTheme from "jsonresume-theme-even";
 import * as microdataTheme from "jsonresume-theme-microdata";
+import * as reactiveTheme from "jsonresume-theme-reactive";
 
 // Registry of available themes (automatically generated)
 export const AVAILABLE_THEMES = {
+  "crewshin": crewshinTheme,
   "even": evenTheme,
   "microdata": microdataTheme,
+  "reactive": reactiveTheme,
 } as const;
 
 export type JsonResumeTheme = keyof typeof AVAILABLE_THEMES;
