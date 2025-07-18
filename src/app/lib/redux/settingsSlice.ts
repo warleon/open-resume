@@ -1,6 +1,20 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type { RootState } from "lib/redux/store";
 
+export type ShowForm =
+  | "workExperiences"
+  | "educations"
+  | "projects"
+  | "skills"
+  | "volunteer"
+  | "awards"
+  | "certificates"
+  | "publications"
+  | "languages"
+  | "interests"
+  | "references"
+  | "custom";
+
 export interface Settings {
   themeColor: string;
   fontFamily: string;
@@ -12,6 +26,13 @@ export interface Settings {
     educations: boolean;
     projects: boolean;
     skills: boolean;
+    volunteer: boolean;
+    awards: boolean;
+    certificates: boolean;
+    publications: boolean;
+    languages: boolean;
+    interests: boolean;
+    references: boolean;
     custom: boolean;
   };
   formToHeading: {
@@ -19,6 +40,13 @@ export interface Settings {
     educations: string;
     projects: string;
     skills: string;
+    volunteer: string;
+    awards: string;
+    certificates: string;
+    publications: string;
+    languages: string;
+    interests: string;
+    references: string;
     custom: string;
   };
   formsOrder: ShowForm[];
@@ -26,11 +54,17 @@ export interface Settings {
     educations: boolean;
     projects: boolean;
     skills: boolean;
+    volunteer: boolean;
+    awards: boolean;
+    certificates: boolean;
+    publications: boolean;
+    languages: boolean;
+    interests: boolean;
+    references: boolean;
     custom: boolean;
   };
 }
 
-export type ShowForm = keyof Settings["formToShow"];
 export type FormWithBulletPoints = keyof Settings["showBulletPoints"];
 export type GeneralSetting = Exclude<
   keyof Settings,
@@ -53,6 +87,13 @@ export const initialSettings: Settings = {
     educations: true,
     projects: true,
     skills: true,
+    volunteer: true,
+    awards: true,
+    certificates: true,
+    publications: true,
+    languages: true,
+    interests: true,
+    references: true,
     custom: false,
   },
   formToHeading: {
@@ -60,13 +101,40 @@ export const initialSettings: Settings = {
     educations: "EDUCATION",
     projects: "PROJECT",
     skills: "SKILLS",
+    volunteer: "VOLUNTEER WORK",
+    awards: "AWARDS",
+    certificates: "CERTIFICATES",
+    publications: "PUBLICATIONS",
+    languages: "LANGUAGES",
+    interests: "INTERESTS",
+    references: "REFERENCES",
     custom: "CUSTOM SECTION",
   },
-  formsOrder: ["workExperiences", "educations", "projects", "skills", "custom"],
+  formsOrder: [
+    "workExperiences",
+    "educations", 
+    "projects", 
+    "skills",
+    "volunteer",
+    "awards",
+    "certificates",
+    "publications",
+    "languages",
+    "interests",
+    "references",
+    "custom"
+  ],
   showBulletPoints: {
     educations: true,
     projects: true,
     skills: true,
+    volunteer: true,
+    awards: true,
+    certificates: true,
+    publications: true,
+    languages: true,
+    interests: true,
+    references: true,
     custom: true,
   },
 };

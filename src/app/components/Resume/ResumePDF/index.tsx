@@ -6,6 +6,13 @@ import { ResumePDFEducation } from "components/Resume/ResumePDF/ResumePDFEducati
 import { ResumePDFProject } from "components/Resume/ResumePDF/ResumePDFProject";
 import { ResumePDFSkills } from "components/Resume/ResumePDF/ResumePDFSkills";
 import { ResumePDFCustom } from "components/Resume/ResumePDF/ResumePDFCustom";
+import { ResumePDFVolunteer } from "components/Resume/ResumePDF/ResumePDFVolunteer";
+import { ResumePDFAwards } from "components/Resume/ResumePDF/ResumePDFAwards";
+import { ResumePDFCertificates } from "components/Resume/ResumePDF/ResumePDFCertificates";
+import { ResumePDFPublications } from "components/Resume/ResumePDF/ResumePDFPublications";
+import { ResumePDFLanguages } from "components/Resume/ResumePDF/ResumePDFLanguages";
+import { ResumePDFInterests } from "components/Resume/ResumePDF/ResumePDFInterests";
+import { ResumePDFReferences } from "components/Resume/ResumePDF/ResumePDFReferences";
 import { DEFAULT_FONT_COLOR } from "lib/redux/settingsSlice";
 import type { Settings, ShowForm } from "lib/redux/settingsSlice";
 import type { Resume } from "lib/redux/types";
@@ -35,7 +42,7 @@ export const ResumePDF = ({
   settings: Settings;
   isPDF?: boolean;
 }) => {
-  const { profile, workExperiences, educations, projects, skills, custom } =
+  const { profile, workExperiences, educations, projects, skills, custom, volunteer, awards, certificates, publications, languages, interests, references } =
     resume;
   const { name } = profile;
   const {
@@ -80,6 +87,56 @@ export const ResumePDF = ({
         skills={skills}
         themeColor={themeColor}
         showBulletPoints={showBulletPoints["skills"]}
+      />
+    ),
+    volunteer: () => (
+      <ResumePDFVolunteer
+        heading={formToHeading["volunteer"]}
+        volunteer={volunteer}
+        themeColor={themeColor}
+        showBulletPoints={showBulletPoints["volunteer"]}
+      />
+    ),
+    awards: () => (
+      <ResumePDFAwards
+        heading={formToHeading["awards"]}
+        awards={awards}
+        themeColor={themeColor}
+      />
+    ),
+    certificates: () => (
+      <ResumePDFCertificates
+        heading={formToHeading["certificates"]}
+        certificates={certificates}
+        themeColor={themeColor}
+      />
+    ),
+    publications: () => (
+      <ResumePDFPublications
+        heading={formToHeading["publications"]}
+        publications={publications}
+        themeColor={themeColor}
+      />
+    ),
+    languages: () => (
+      <ResumePDFLanguages
+        heading={formToHeading["languages"]}
+        languages={languages}
+        themeColor={themeColor}
+      />
+    ),
+    interests: () => (
+      <ResumePDFInterests
+        heading={formToHeading["interests"]}
+        interests={interests}
+        themeColor={themeColor}
+      />
+    ),
+    references: () => (
+      <ResumePDFReferences
+        heading={formToHeading["references"]}
+        references={references}
+        themeColor={themeColor}
       />
     ),
     custom: () => (

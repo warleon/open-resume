@@ -5,145 +5,7 @@ import { useAppDispatch } from "lib/redux/hooks";
 import { setResume } from "lib/redux/resumeSlice";
 import { cx } from "lib/cx";
 import type { Resume } from "lib/redux/types";
-
-interface JsonResumeSchema {
-  basics?: {
-    name?: string;
-    label?: string;
-    image?: string;
-    email?: string;
-    phone?: string;
-    url?: string;
-    summary?: string;
-    location?: {
-      address?: string;
-      postalCode?: string;
-      city?: string;
-      countryCode?: string;
-      region?: string;
-    };
-    profiles?: Array<{
-      network?: string;
-      username?: string;
-      url?: string;
-    }>;
-  };
-  work?: Array<{
-    name?: string;
-    position?: string;
-    url?: string;
-    startDate?: string;
-    endDate?: string;
-    summary?: string;
-    highlights?: string[];
-  }>;
-  volunteer?: Array<{
-    organization?: string;
-    position?: string;
-    url?: string;
-    startDate?: string;
-    endDate?: string;
-    summary?: string;
-    highlights?: string[];
-  }>;
-  education?: Array<{
-    institution?: string;
-    url?: string;
-    area?: string;
-    studyType?: string;
-    startDate?: string;
-    endDate?: string;
-    score?: string;
-    courses?: string[];
-  }>;
-  skills?: Array<{
-    name?: string;
-    level?: string;
-    keywords?: string[];
-  }>;
-  projects?: Array<{
-    name?: string;
-    startDate?: string;
-    endDate?: string;
-    description?: string;
-    highlights?: string[];
-    url?: string;
-  }>;
-  [key: string]: any;
-}
-
-const mapJsonResumeToInternalFormat = (jsonResume: JsonResumeSchema): Resume => {
-  const { basics, work = [], education = [], skills = [], projects = [] } = jsonResume;
-
-  // Map profile
-  const profile = {
-    name: basics?.name || "",
-    email: basics?.email || "",
-    phone: basics?.phone || "",
-    url: basics?.url || "",
-    summary: basics?.summary || "",
-    location: basics?.location 
-      ? `${basics.location.city || ""}, ${basics.location.region || ""} ${basics.location.postalCode || ""}`.trim()
-      : "",
-  };
-
-  // Map work experiences
-  const workExperiences = work.map(job => ({
-    company: job.name || "",
-    jobTitle: job.position || "",
-    date: job.startDate && job.endDate 
-      ? `${job.startDate} to ${job.endDate}`
-      : job.startDate || "",
-    descriptions: job.highlights || (job.summary ? [job.summary] : []),
-  }));
-
-  // Map education
-  const educations = education.map(edu => ({
-    school: edu.institution || "",
-    degree: `${edu.studyType || ""} in ${edu.area || ""}`.trim(),
-    date: edu.startDate && edu.endDate 
-      ? `${edu.startDate} to ${edu.endDate}`
-      : edu.startDate || "",
-    gpa: edu.score || "",
-    descriptions: edu.courses || [],
-  }));
-
-  // Map projects
-  const mappedProjects = projects.map(proj => ({
-    project: proj.name || "",
-    date: proj.startDate && proj.endDate 
-      ? `${proj.startDate} to ${proj.endDate}`
-      : proj.startDate || "",
-    descriptions: proj.highlights || (proj.description ? [proj.description] : []),
-  }));
-
-  // Map skills
-  const featuredSkills = skills.slice(0, 6).map(skill => ({
-    skill: skill.name || "",
-    rating: skill.level === "Master" ? 5 : 
-            skill.level === "Advanced" ? 4 : 
-            skill.level === "Intermediate" ? 3 : 
-            skill.level === "Beginner" ? 2 : 3,
-  }));
-
-  const skillDescriptions = skills.flatMap(skill => 
-    skill.keywords || []
-  );
-
-  return {
-    profile,
-    workExperiences: workExperiences.length > 0 ? workExperiences : [{ company: "", jobTitle: "", date: "", descriptions: [] }],
-    educations: educations.length > 0 ? educations : [{ school: "", degree: "", date: "", gpa: "", descriptions: [] }],
-    projects: mappedProjects.length > 0 ? mappedProjects : [{ project: "", date: "", descriptions: [] }],
-    skills: {
-      featuredSkills: featuredSkills.length > 0 ? featuredSkills : [{ skill: "", rating: 0 }],
-      descriptions: skillDescriptions,
-    },
-    custom: {
-      descriptions: [],
-    },
-  };
-};
+import { JsonResume, convertFromJsonResume } from "lib/convert-to-json-resume";
 
 const defaultFileState = {
   name: "",
@@ -211,9 +73,9 @@ export const JsonResumeDropzone = ({
 
       const response = await fetch(file.fileUrl);
       const jsonText = await response.text();
-      const jsonData: JsonResumeSchema = JSON.parse(jsonText);
+      const jsonData: JsonResume = JSON.parse(jsonText);
 
-      const resume = mapJsonResumeToInternalFormat(jsonData);
+      const resume = convertFromJsonResume(jsonData);
       dispatch(setResume(resume));
       
       setError("");

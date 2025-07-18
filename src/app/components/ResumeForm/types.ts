@@ -1,3 +1,3 @@
 export type CreateHandleChangeArgsWithDescriptions<T> =
-  | [field: Exclude<keyof T, "descriptions">, value: string]
-  | [field: "descriptions", value: string[]];
+  | [field: Exclude<keyof T, "descriptions" | "highlights" | "keywords" | "roles">, value: string]
+  | [field: "descriptions" | "highlights" | "keywords" | "roles", value: string[]];

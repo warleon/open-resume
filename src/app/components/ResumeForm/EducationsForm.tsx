@@ -22,7 +22,7 @@ export const EducationsForm = () => {
 
   return (
     <Form form={form} addButtonText="Add School">
-      {educations.map(({ school, degree, gpa, date, descriptions }, idx) => {
+      {educations.map(({ school, url, degree, gpa, date, descriptions }, idx) => {
         const handleEducationChange = (
           ...[
             field,
@@ -77,21 +77,29 @@ export const EducationsForm = () => {
               label="GPA"
               labelClassName="col-span-2"
               name="gpa"
-              placeholder="3.81"
+              placeholder="3.8/4.0"
               value={gpa}
+              onChange={handleEducationChange}
+            />
+            <Input
+              label="Institution Website"
+              labelClassName="col-span-full"
+              name="url"
+              placeholder="https://www.cornell.edu"
+              value={url}
               onChange={handleEducationChange}
             />
             <div className="relative col-span-full">
               <BulletListTextarea
-                label="Additional Information (Optional)"
+                label="Additional Info (Clubs, Honors, Coursework, etc.)"
                 labelClassName="col-span-full"
                 name="descriptions"
-                placeholder="Free paragraph space to list out additional activities, courses, awards etc"
+                placeholder="Bullet points"
                 value={descriptions}
                 onChange={handleEducationChange}
                 showBulletPoints={showBulletPoints}
               />
-              <div className="absolute left-[15.6rem] top-[0.07rem]">
+              <div className="absolute left-[20.5rem] top-[0.07rem]">
                 <BulletListIconButton
                   showBulletPoints={showBulletPoints}
                   onClick={handleShowBulletPoints}

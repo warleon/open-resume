@@ -12,6 +12,7 @@ import { usePDF } from "@react-pdf/renderer";
 import dynamic from "next/dynamic";
 import { useAppSelector } from "lib/redux/hooks";
 import { selectResume } from "lib/redux/resumeSlice";
+import { convertToJsonResume } from "lib/convert-to-json-resume";
 
 const ResumeControlBar = ({
   scale,
@@ -57,7 +58,12 @@ const ResumeControlBar = ({
   }, [update, document]);
 
   const downloadJson = () => {
-    const jsonData = JSON.stringify(resume, null, 2);
+    const jsonResume = convertToJsonResume(resume);
+    const jsonResumeWithSchema = {
+      "$schema": "https://raw.githubusercontent.com/jsonresume/resume-schema/v1.0.0/schema.json",
+      ...jsonResume
+    };
+    const jsonData = JSON.stringify(jsonResumeWithSchema, null, 2);
     const blob = new Blob([jsonData], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = window.document.createElement("a");
@@ -71,7 +77,12 @@ const ResumeControlBar = ({
   };
 
   const copyJsonToClipboard = async () => {
-    const jsonData = JSON.stringify(resume, null, 2);
+    const jsonResume = convertToJsonResume(resume);
+    const jsonResumeWithSchema = {
+      "$schema": "https://raw.githubusercontent.com/jsonresume/resume-schema/v1.0.0/schema.json",
+      ...jsonResume
+    };
+    const jsonData = JSON.stringify(jsonResumeWithSchema, null, 2);
     try {
       await navigator.clipboard.writeText(jsonData);
       // You could add a toast notification here if desired

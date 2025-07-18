@@ -136,7 +136,12 @@ const PDFPreviewComponent = () => {
   const fileName = `${resume.profile.name || "Resume"} - Resume.pdf`;
 
   const downloadJson = () => {
-    const jsonData = JSON.stringify(resume, null, 2);
+    const jsonResume = convertToJsonResume(resume);
+    const jsonResumeWithSchema = {
+      "$schema": "https://raw.githubusercontent.com/jsonresume/resume-schema/v1.0.0/schema.json",
+      ...jsonResume
+    };
+    const jsonData = JSON.stringify(jsonResumeWithSchema, null, 2);
     const blob = new Blob([jsonData], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = window.document.createElement("a");
@@ -150,13 +155,17 @@ const PDFPreviewComponent = () => {
   };
 
   const copyJsonToClipboard = async () => {
-    const jsonData = JSON.stringify(resume, null, 2);
+    const jsonResume = convertToJsonResume(resume);
+    const jsonResumeWithSchema = {
+      "$schema": "https://raw.githubusercontent.com/jsonresume/resume-schema/v1.0.0/schema.json",
+      ...jsonResume
+    };
+    const jsonData = JSON.stringify(jsonResumeWithSchema, null, 2);
     try {
       await navigator.clipboard.writeText(jsonData);
       console.log("JSON data copied to clipboard");
     } catch (err) {
       console.error("Failed to copy JSON to clipboard:", err);
-      // Fallback for older browsers
       const textArea = window.document.createElement("textarea");
       textArea.value = jsonData;
       window.document.body.appendChild(textArea);

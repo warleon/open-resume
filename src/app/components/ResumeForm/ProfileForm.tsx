@@ -7,7 +7,7 @@ import { ResumeProfile } from "lib/redux/types";
 export const ProfileForm = () => {
   const profile = useAppSelector(selectProfile);
   const dispatch = useAppDispatch();
-  const { name, email, phone, url, summary, location } = profile;
+  const { name, label, image, email, phone, url, summary, location } = profile;
 
   const handleProfileChange = (field: keyof ResumeProfile, value: string) => {
     dispatch(changeProfile({ field, value }));
@@ -24,6 +24,14 @@ export const ProfileForm = () => {
           value={name}
           onChange={handleProfileChange}
         />
+        <Input
+          label="Professional Title"
+          labelClassName="col-span-full"
+          name="label"
+          placeholder="Software Engineer"
+          value={label}
+          onChange={handleProfileChange}
+        />
         <Textarea
           label="Objective"
           labelClassName="col-span-full"
@@ -34,7 +42,7 @@ export const ProfileForm = () => {
         />
         <Input
           label="Email"
-          labelClassName="col-span-4"
+          labelClassName="col-span-3"
           name="email"
           placeholder="hello@khanacademy.org"
           value={email}
@@ -42,7 +50,7 @@ export const ProfileForm = () => {
         />
         <Input
           label="Phone"
-          labelClassName="col-span-2"
+          labelClassName="col-span-3"
           name="phone"
           placeholder="(123)456-7890"
           value={phone}
@@ -50,7 +58,7 @@ export const ProfileForm = () => {
         />
         <Input
           label="Website"
-          labelClassName="col-span-4"
+          labelClassName="col-span-3"
           name="url"
           placeholder="linkedin.com/in/khanacademy"
           value={url}
@@ -58,10 +66,18 @@ export const ProfileForm = () => {
         />
         <Input
           label="Location"
-          labelClassName="col-span-2"
+          labelClassName="col-span-3"
           name="location"
           placeholder="NYC, NY"
           value={location}
+          onChange={handleProfileChange}
+        />
+        <Input
+          label="Profile Photo URL"
+          labelClassName="col-span-full"
+          name="image"
+          placeholder="https://example.com/photo.jpg"
+          value={image}
           onChange={handleProfileChange}
         />
       </div>
