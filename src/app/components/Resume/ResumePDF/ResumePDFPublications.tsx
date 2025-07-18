@@ -2,6 +2,7 @@ import { View } from "@react-pdf/renderer";
 import {
   ResumePDFSection,
   ResumePDFText,
+  ResumePDFLink,
 } from "components/Resume/ResumePDF/common";
 import { styles, spacing } from "components/Resume/ResumePDF/styles";
 import type { ResumePublication } from "lib/redux/types";
@@ -17,7 +18,7 @@ export const ResumePDFPublications = ({
 }) => {
   return (
     <ResumePDFSection themeColor={themeColor} heading={heading}>
-      {publications?.map(({ name, publisher, releaseDate, summary }, idx) => (
+      {publications?.map(({ name, publisher, releaseDate, url, summary }, idx) => (
         <View key={idx} style={idx !== 0 ? { marginTop: spacing["2"] } : {}}>
           <View
             style={{
@@ -32,6 +33,13 @@ export const ResumePDFPublications = ({
             <ResumePDFText style={{ marginTop: spacing["0.5"] }}>
               {publisher}
             </ResumePDFText>
+          )}
+          {url && (
+            <ResumePDFLink src={url.startsWith("http") ? url : `https://${url}`} isPDF={true}>
+              <ResumePDFText style={{ fontSize: "10pt", marginTop: spacing["0.5"] }}>
+                {url}
+              </ResumePDFText>
+            </ResumePDFLink>
           )}
           {summary && (
             <ResumePDFText style={{ marginTop: spacing["0.5"] }}>

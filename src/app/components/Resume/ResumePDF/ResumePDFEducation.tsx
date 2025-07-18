@@ -3,6 +3,7 @@ import {
   ResumePDFBulletList,
   ResumePDFSection,
   ResumePDFText,
+  ResumePDFLink,
 } from "components/Resume/ResumePDF/common";
 import { styles, spacing } from "components/Resume/ResumePDF/styles";
 import type { ResumeEducation } from "lib/redux/types";
@@ -21,7 +22,7 @@ export const ResumePDFEducation = ({
   return (
     <ResumePDFSection themeColor={themeColor} heading={heading}>
       {educations.map(
-        ({ school, degree, date, gpa, descriptions = [] }, idx) => {
+        ({ school, url, degree, date, gpa, descriptions = [] }, idx) => {
           // Hide school name if it is the same as the previous school
           const hideSchoolName =
             idx > 0 && school === educations[idx - 1].school;
@@ -31,6 +32,13 @@ export const ResumePDFEducation = ({
             <View key={idx}>
               {!hideSchoolName && (
                 <ResumePDFText bold={true}>{school}</ResumePDFText>
+              )}
+              {!hideSchoolName && url && (
+                <ResumePDFLink src={url.startsWith("http") ? url : `https://${url}`} isPDF={true}>
+                  <ResumePDFText style={{ fontSize: "10pt", marginTop: spacing["0.5"] }}>
+                    {url}
+                  </ResumePDFText>
+                </ResumePDFLink>
               )}
               <View
                 style={{

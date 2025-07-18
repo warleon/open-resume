@@ -2,6 +2,7 @@ import { View } from "@react-pdf/renderer";
 import {
   ResumePDFSection,
   ResumePDFText,
+  ResumePDFLink,
 } from "components/Resume/ResumePDF/common";
 import { styles, spacing } from "components/Resume/ResumePDF/styles";
 import type { ResumeCertificate } from "lib/redux/types";
@@ -17,7 +18,7 @@ export const ResumePDFCertificates = ({
 }) => {
   return (
     <ResumePDFSection themeColor={themeColor} heading={heading}>
-      {certificates?.map(({ name, date, issuer }, idx) => (
+      {certificates?.map(({ name, date, url, issuer }, idx) => (
         <View key={idx} style={idx !== 0 ? { marginTop: spacing["2"] } : {}}>
           <View
             style={{
@@ -32,6 +33,13 @@ export const ResumePDFCertificates = ({
             <ResumePDFText style={{ marginTop: spacing["0.5"] }}>
               {issuer}
             </ResumePDFText>
+          )}
+          {url && (
+            <ResumePDFLink src={url.startsWith("http") ? url : `https://${url}`} isPDF={true}>
+              <ResumePDFText style={{ fontSize: "10pt", marginTop: spacing["0.5"] }}>
+                {url}
+              </ResumePDFText>
+            </ResumePDFLink>
           )}
         </View>
       ))}
