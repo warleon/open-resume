@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   useAppSelector,
   useAppDispatch,
@@ -71,7 +71,9 @@ export const ResumeForm = () => {
   const [isHover, setIsHover] = useState(false);
   const [isManualEntryExpanded, setIsManualEntryExpanded] = useState(true);
   const [isThemeSelectorExpanded, setIsThemeSelectorExpanded] = useState(false);
-  const [previousResumeString, setPreviousResumeString] = useState("");
+  
+  // Track previous resume state to detect bulk imports
+  const previousResumeRef = useRef<string>("");
 
   // Migration logic for existing users - run immediately and only once per session
   useEffect(() => {
@@ -130,27 +132,50 @@ export const ResumeForm = () => {
 
     // Run migration immediately when component mounts
     runMigration();
-  }, []); // Empty dependency array - run only once on mount
+  }, []);
 
   // Auto-collapse manual entry when JSON resume is imported
+  // Only collapse if this looks like a bulk import (multiple sections changed simultaneously)
   useEffect(() => {
     const currentResumeString = JSON.stringify(resume);
+    const previousResumeString = previousResumeRef.current;
+    
     if (previousResumeString && currentResumeString !== previousResumeString) {
-      // Check if this was likely a JSON import (significant change in resume data)
-      const hasContentInMultipleSections = [
-        resume.profile.name,
-        resume.workExperiences.some(exp => exp.company),
-        resume.educations.some(edu => edu.school),
-        resume.projects.some(proj => proj.project),
-        resume.skills.descriptions.length > 0
-      ].filter(Boolean).length >= 2;
+      try {
+        const previousResume = JSON.parse(previousResumeString);
+        
+        // Check how many major sections changed in this update
+        const sectionsChanged = [
+          JSON.stringify(previousResume.profile) !== JSON.stringify(resume.profile),
+          JSON.stringify(previousResume.workExperiences) !== JSON.stringify(resume.workExperiences),
+          JSON.stringify(previousResume.educations) !== JSON.stringify(resume.educations),
+          JSON.stringify(previousResume.projects) !== JSON.stringify(resume.projects),
+          JSON.stringify(previousResume.skills) !== JSON.stringify(resume.skills),
+        ].filter(Boolean).length;
+        
+        // Only auto-collapse if multiple sections changed simultaneously (likely JSON import)
+        // Single keystroke updates typically only change one section
+        if (sectionsChanged >= 2) {
+          const hasContentInMultipleSections = [
+            resume.profile.name,
+            resume.workExperiences.some(exp => exp.company),
+            resume.educations.some(edu => edu.school),
+            resume.projects.some(proj => proj.project),
+            resume.skills.descriptions.length > 0
+          ].filter(Boolean).length >= 2;
 
-      if (hasContentInMultipleSections) {
-        setIsManualEntryExpanded(false);
+          if (hasContentInMultipleSections) {
+            setIsManualEntryExpanded(false);
+          }
+        }
+      } catch (error) {
+        // If JSON parsing fails, don't auto-collapse
+        console.warn("Failed to parse previous resume state for auto-collapse detection");
       }
     }
-    setPreviousResumeString(currentResumeString);
-  }, [resume, previousResumeString]);
+    
+    previousResumeRef.current = currentResumeString;
+  }, [resume]);
 
   const toggleManualEntry = () => {
     setIsManualEntryExpanded(!isManualEntryExpanded);
