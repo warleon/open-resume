@@ -29,9 +29,20 @@ function getJsonResumeThemes() {
       ...packageJson.devDependencies
     };
     
-    // Filter for jsonresume-theme-* packages
+    // Filter for jsonresume-theme-* packages (including scoped packages)
     const themePackages = Object.keys(allDependencies)
-      .filter(name => name.startsWith('jsonresume-theme-'))
+      .filter(name => {
+        // Check for regular packages: jsonresume-theme-*
+        if (name.startsWith('jsonresume-theme-')) {
+          return true;
+        }
+        // Check for scoped packages: @scope/jsonresume-theme-*
+        if (name.startsWith('@') && name.includes('/')) {
+          const packageName = name.split('/')[1];
+          return packageName.startsWith('jsonresume-theme-');
+        }
+        return false;
+      })
       .sort(); // Sort for consistent output
     
     return themePackages;
@@ -41,18 +52,40 @@ function getJsonResumeThemes() {
   }
 }
 
+function getThemeName(packageName) {
+  if (packageName.startsWith('@')) {
+    // Scoped package: @scope/jsonresume-theme-name -> scope-name
+    const [scope, name] = packageName.split('/');
+    const scopeName = scope.substring(1); // Remove @ prefix
+    const themeName = name.replace('jsonresume-theme-', '');
+    return `${scopeName}-${themeName}`;
+  } else {
+    // Regular package: jsonresume-theme-name -> name
+    return packageName.replace('jsonresume-theme-', '');
+  }
+}
+
+function getVariableName(themeName) {
+  // Convert theme name to valid JavaScript variable name
+  // Replace hyphens with camelCase
+  return themeName
+    .split('-')
+    .map((part, index) => index === 0 ? part : part.charAt(0).toUpperCase() + part.slice(1))
+    .join('') + 'Theme';
+}
+
 function generateThemesFileContent(themePackages) {
   // Generate import statements
   const imports = themePackages.map(packageName => {
-    const themeName = packageName.replace('jsonresume-theme-', '');
-    const variableName = `${themeName}Theme`;
+    const themeName = getThemeName(packageName);
+    const variableName = getVariableName(themeName);
     return `import * as ${variableName} from "${packageName}";`;
   }).join('\n');
 
   // Generate AVAILABLE_THEMES object entries
   const themeEntries = themePackages.map(packageName => {
-    const themeName = packageName.replace('jsonresume-theme-', '');
-    const variableName = `${themeName}Theme`;
+    const themeName = getThemeName(packageName);
+    const variableName = getVariableName(themeName);
     return `  "${themeName}": ${variableName},`;
   }).join('\n');
 
@@ -91,7 +124,7 @@ function main() {
   
   log(`✅ Found ${themePackages.length} theme(s):`, 'green');
   themePackages.forEach(pkg => {
-    const themeName = pkg.replace('jsonresume-theme-', '');
+    const themeName = getThemeName(pkg);
     log(`   • ${pkg} → "${themeName}"`, 'green');
   });
   
