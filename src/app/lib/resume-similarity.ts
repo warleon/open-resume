@@ -1,4 +1,4 @@
-import type { Resume, ResumeProfile, ResumeWorkExperience, ResumeEducation, ResumeProject, ResumeSkills } from "lib/redux/types";
+import type { Resume, ResumeProfile, ResumeWorkExperience, ResumeEducation, ResumeProject, ResumeSkills, ResumeVolunteer, ResumeAward, ResumeCertificate, ResumePublication, ResumeLanguage, ResumeInterest, ResumeReference, ResumeCustom } from "lib/redux/types";
 
 /**
  * Calculate the similarity between two strings using Jaccard similarity
@@ -183,6 +183,203 @@ function calculateSkillsSimilarity(skills1: ResumeSkills, skills2: ResumeSkills)
   return (featuredSim * 0.4 + descSim * 0.6);
 }
 
+/**
+ * Calculate similarity between two volunteer arrays
+ */
+function calculateVolunteerSimilarity(vol1: ResumeVolunteer[], vol2: ResumeVolunteer[]): number {
+  if (vol1.length === 0 && vol2.length === 0) return 1;
+  if (vol1.length === 0 || vol2.length === 0) return 0;
+  
+  let totalSimilarity = 0;
+  let comparisons = 0;
+  
+  for (const volunteer1 of vol1) {
+    let bestMatch = 0;
+    for (const volunteer2 of vol2) {
+      const organizationSim = calculateStringSimilarity(volunteer1.organization, volunteer2.organization);
+      const positionSim = calculateStringSimilarity(volunteer1.position, volunteer2.position);
+      const startDateSim = calculateStringSimilarity(volunteer1.startDate, volunteer2.startDate);
+      const endDateSim = calculateStringSimilarity(volunteer1.endDate, volunteer2.endDate);
+      const highlightsSim = calculateArraySimilarity(volunteer1.highlights, volunteer2.highlights);
+      
+      const similarity = (organizationSim * 0.3 + positionSim * 0.3 + startDateSim * 0.05 + endDateSim * 0.05 + highlightsSim * 0.3);
+      bestMatch = Math.max(bestMatch, similarity);
+    }
+    totalSimilarity += bestMatch;
+    comparisons++;
+  }
+  
+  return comparisons === 0 ? 0 : totalSimilarity / comparisons;
+}
+
+/**
+ * Calculate similarity between two awards arrays
+ */
+function calculateAwardsSimilarity(awards1: ResumeAward[], awards2: ResumeAward[]): number {
+  if (awards1.length === 0 && awards2.length === 0) return 1;
+  if (awards1.length === 0 || awards2.length === 0) return 0;
+  
+  let totalSimilarity = 0;
+  let comparisons = 0;
+  
+  for (const award1 of awards1) {
+    let bestMatch = 0;
+    for (const award2 of awards2) {
+      const titleSim = calculateStringSimilarity(award1.title, award2.title);
+      const dateSim = calculateStringSimilarity(award1.date, award2.date);
+      const awarderSim = calculateStringSimilarity(award1.awarder, award2.awarder);
+      const summarySim = calculateStringSimilarity(award1.summary, award2.summary);
+      
+      const similarity = (titleSim * 0.4 + dateSim * 0.2 + awarderSim * 0.2 + summarySim * 0.2);
+      bestMatch = Math.max(bestMatch, similarity);
+    }
+    totalSimilarity += bestMatch;
+    comparisons++;
+  }
+  
+  return comparisons === 0 ? 0 : totalSimilarity / comparisons;
+}
+
+/**
+ * Calculate similarity between two certificates arrays
+ */
+function calculateCertificatesSimilarity(certs1: ResumeCertificate[], certs2: ResumeCertificate[]): number {
+  if (certs1.length === 0 && certs2.length === 0) return 1;
+  if (certs1.length === 0 || certs2.length === 0) return 0;
+  
+  let totalSimilarity = 0;
+  let comparisons = 0;
+  
+  for (const cert1 of certs1) {
+    let bestMatch = 0;
+    for (const cert2 of certs2) {
+      const nameSim = calculateStringSimilarity(cert1.name, cert2.name);
+      const dateSim = calculateStringSimilarity(cert1.date, cert2.date);
+      const issuerSim = calculateStringSimilarity(cert1.issuer, cert2.issuer);
+      
+      const similarity = (nameSim * 0.5 + dateSim * 0.2 + issuerSim * 0.3);
+      bestMatch = Math.max(bestMatch, similarity);
+    }
+    totalSimilarity += bestMatch;
+    comparisons++;
+  }
+  
+  return comparisons === 0 ? 0 : totalSimilarity / comparisons;
+}
+
+/**
+ * Calculate similarity between two publications arrays
+ */
+function calculatePublicationsSimilarity(pubs1: ResumePublication[], pubs2: ResumePublication[]): number {
+  if (pubs1.length === 0 && pubs2.length === 0) return 1;
+  if (pubs1.length === 0 || pubs2.length === 0) return 0;
+  
+  let totalSimilarity = 0;
+  let comparisons = 0;
+  
+  for (const pub1 of pubs1) {
+    let bestMatch = 0;
+    for (const pub2 of pubs2) {
+      const nameSim = calculateStringSimilarity(pub1.name, pub2.name);
+      const publisherSim = calculateStringSimilarity(pub1.publisher, pub2.publisher);
+      const dateSim = calculateStringSimilarity(pub1.releaseDate, pub2.releaseDate);
+      const summarySim = calculateStringSimilarity(pub1.summary, pub2.summary);
+      
+      const similarity = (nameSim * 0.4 + publisherSim * 0.2 + dateSim * 0.1 + summarySim * 0.3);
+      bestMatch = Math.max(bestMatch, similarity);
+    }
+    totalSimilarity += bestMatch;
+    comparisons++;
+  }
+  
+  return comparisons === 0 ? 0 : totalSimilarity / comparisons;
+}
+
+/**
+ * Calculate similarity between two languages arrays
+ */
+function calculateLanguagesSimilarity(langs1: ResumeLanguage[], langs2: ResumeLanguage[]): number {
+  if (langs1.length === 0 && langs2.length === 0) return 1;
+  if (langs1.length === 0 || langs2.length === 0) return 0;
+  
+  let totalSimilarity = 0;
+  let comparisons = 0;
+  
+  for (const lang1 of langs1) {
+    let bestMatch = 0;
+    for (const lang2 of langs2) {
+      const languageSim = calculateStringSimilarity(lang1.language, lang2.language);
+      const fluencySim = calculateStringSimilarity(lang1.fluency, lang2.fluency);
+      
+      const similarity = (languageSim * 0.7 + fluencySim * 0.3);
+      bestMatch = Math.max(bestMatch, similarity);
+    }
+    totalSimilarity += bestMatch;
+    comparisons++;
+  }
+  
+  return comparisons === 0 ? 0 : totalSimilarity / comparisons;
+}
+
+/**
+ * Calculate similarity between two interests arrays
+ */
+function calculateInterestsSimilarity(interests1: ResumeInterest[], interests2: ResumeInterest[]): number {
+  if (interests1.length === 0 && interests2.length === 0) return 1;
+  if (interests1.length === 0 || interests2.length === 0) return 0;
+  
+  let totalSimilarity = 0;
+  let comparisons = 0;
+  
+  for (const interest1 of interests1) {
+    let bestMatch = 0;
+    for (const interest2 of interests2) {
+      const nameSim = calculateStringSimilarity(interest1.name, interest2.name);
+      const keywordsSim = calculateArraySimilarity(interest1.keywords, interest2.keywords);
+      
+      const similarity = (nameSim * 0.6 + keywordsSim * 0.4);
+      bestMatch = Math.max(bestMatch, similarity);
+    }
+    totalSimilarity += bestMatch;
+    comparisons++;
+  }
+  
+  return comparisons === 0 ? 0 : totalSimilarity / comparisons;
+}
+
+/**
+ * Calculate similarity between two references arrays
+ */
+function calculateReferencesSimilarity(refs1: ResumeReference[], refs2: ResumeReference[]): number {
+  if (refs1.length === 0 && refs2.length === 0) return 1;
+  if (refs1.length === 0 || refs2.length === 0) return 0;
+  
+  let totalSimilarity = 0;
+  let comparisons = 0;
+  
+  for (const ref1 of refs1) {
+    let bestMatch = 0;
+    for (const ref2 of refs2) {
+      const nameSim = calculateStringSimilarity(ref1.name, ref2.name);
+      const referenceSim = calculateStringSimilarity(ref1.reference, ref2.reference);
+      
+      const similarity = (nameSim * 0.5 + referenceSim * 0.5);
+      bestMatch = Math.max(bestMatch, similarity);
+    }
+    totalSimilarity += bestMatch;
+    comparisons++;
+  }
+  
+  return comparisons === 0 ? 0 : totalSimilarity / comparisons;
+}
+
+/**
+ * Calculate similarity between two custom sections
+ */
+function calculateCustomSimilarity(custom1: ResumeCustom, custom2: ResumeCustom): number {
+  return calculateArraySimilarity(custom1.descriptions, custom2.descriptions);
+}
+
 export interface DetailedSimilarityScore {
   overall: number;
   sections: {
@@ -191,6 +388,14 @@ export interface DetailedSimilarityScore {
     educations: number;
     projects: number;
     skills: number;
+    volunteer: number;
+    awards: number;
+    certificates: number;
+    publications: number;
+    languages: number;
+    interests: number;
+    references: number;
+    custom: number;
   };
   weights: {
     profile: number;
@@ -198,6 +403,14 @@ export interface DetailedSimilarityScore {
     educations: number;
     projects: number;
     skills: number;
+    volunteer: number;
+    awards: number;
+    certificates: number;
+    publications: number;
+    languages: number;
+    interests: number;
+    references: number;
+    custom: number;
   };
 }
 
@@ -220,11 +433,19 @@ export function calculateResumeSimilarity(originalResume: Resume, parsedResume: 
  */
 export function calculateDetailedResumeSimilarity(originalResume: Resume, parsedResume: Resume): DetailedSimilarityScore {
   const weights = {
-    profile: 0.25,
-    workExperiences: 0.3,
-    educations: 0.2,
-    projects: 0.15,
-    skills: 0.1,
+    profile: 0.20,
+    workExperiences: 0.25,
+    educations: 0.15,
+    projects: 0.12,
+    skills: 0.08,
+    volunteer: 0.05,
+    awards: 0.03,
+    certificates: 0.03,
+    publications: 0.03,
+    languages: 0.02,
+    interests: 0.02,
+    references: 0.01,
+    custom: 0.01,
   };
   
   const profileSim = calculateProfileSimilarity(originalResume.profile, parsedResume.profile);
@@ -232,13 +453,29 @@ export function calculateDetailedResumeSimilarity(originalResume: Resume, parsed
   const eduSim = calculateEducationSimilarity(originalResume.educations, parsedResume.educations);
   const projSim = calculateProjectSimilarity(originalResume.projects, parsedResume.projects);
   const skillsSim = calculateSkillsSimilarity(originalResume.skills, parsedResume.skills);
+  const volunteerSim = calculateVolunteerSimilarity(originalResume.volunteer, parsedResume.volunteer);
+  const awardsSim = calculateAwardsSimilarity(originalResume.awards, parsedResume.awards);
+  const certificatesSim = calculateCertificatesSimilarity(originalResume.certificates, parsedResume.certificates);
+  const publicationsSim = calculatePublicationsSimilarity(originalResume.publications, parsedResume.publications);
+  const languagesSim = calculateLanguagesSimilarity(originalResume.languages, parsedResume.languages);
+  const interestsSim = calculateInterestsSimilarity(originalResume.interests, parsedResume.interests);
+  const referencesSim = calculateReferencesSimilarity(originalResume.references, parsedResume.references);
+  const customSim = calculateCustomSimilarity(originalResume.custom, parsedResume.custom);
   
   const totalSimilarity = (
     profileSim * weights.profile +
     workSim * weights.workExperiences +
     eduSim * weights.educations +
     projSim * weights.projects +
-    skillsSim * weights.skills
+    skillsSim * weights.skills +
+    volunteerSim * weights.volunteer +
+    awardsSim * weights.awards +
+    certificatesSim * weights.certificates +
+    publicationsSim * weights.publications +
+    languagesSim * weights.languages +
+    interestsSim * weights.interests +
+    referencesSim * weights.references +
+    customSim * weights.custom
   );
   
   return {
@@ -249,6 +486,14 @@ export function calculateDetailedResumeSimilarity(originalResume: Resume, parsed
       educations: Math.max(0, Math.min(1, eduSim)),
       projects: Math.max(0, Math.min(1, projSim)),
       skills: Math.max(0, Math.min(1, skillsSim)),
+      volunteer: Math.max(0, Math.min(1, volunteerSim)),
+      awards: Math.max(0, Math.min(1, awardsSim)),
+      certificates: Math.max(0, Math.min(1, certificatesSim)),
+      publications: Math.max(0, Math.min(1, publicationsSim)),
+      languages: Math.max(0, Math.min(1, languagesSim)),
+      interests: Math.max(0, Math.min(1, interestsSim)),
+      references: Math.max(0, Math.min(1, referencesSim)),
+      custom: Math.max(0, Math.min(1, customSim)),
     },
     weights,
   };

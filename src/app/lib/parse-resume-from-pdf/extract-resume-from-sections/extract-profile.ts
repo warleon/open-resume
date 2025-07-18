@@ -167,12 +167,15 @@ export const extractProfile = (sections: ResumeSectionToLines) => {
   return {
     profile: {
       name,
+      label: "", // Not extracted by parser
+      image: "", // Not extracted by parser
       email,
       phone,
       location,
       url,
       // Dedicated section takes higher precedence over profile summary
       summary: summarySection || objectiveSection || summary,
+      profiles: [], // Not extracted by parser
     },
     // For debugging
     profileScores: {

@@ -224,7 +224,15 @@ export default function ResumeParser() {
                            workExperiences: "Work Experience", 
                            educations: "Education",
                            projects: "Projects",
-                           skills: "Skills"
+                           skills: "Skills",
+                           volunteer: "Volunteer Work",
+                           awards: "Awards",
+                           certificates: "Certificates",
+                           publications: "Publications",
+                           languages: "Languages",
+                           interests: "Interests",
+                           references: "References",
+                           custom: "Custom Section"
                          };
                          
                          // Get the appropriate progress bar color based on score

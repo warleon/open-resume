@@ -35,6 +35,15 @@ export const extractResumeFromSections = (
     workExperiences,
     projects,
     skills,
+    // Additional sections that are not yet extracted by the parser
+    // These return empty arrays for now, allowing similarity calculation to work
+    volunteer: [],
+    awards: [],
+    certificates: [],
+    publications: [],
+    languages: [],
+    interests: [],
+    references: [],
     custom: {
       descriptions: [],
     },
