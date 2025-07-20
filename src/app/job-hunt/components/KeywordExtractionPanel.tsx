@@ -1,14 +1,5 @@
-import keyword_extractor from "keyword-extractor";
-import { htmlToText } from "html-to-text";
 import { forwardRef, useImperativeHandle } from "react";
-import { useAppSelector, useAppDispatch } from "lib/redux/hooks";
-import { store } from "lib/redux/store";
-import { 
-  setExtractedText, 
-  setExtractedKeywords, 
-  setIsExtracting, 
-  setExtractionError 
-} from "lib/redux/jobHuntSlice";
+import { useAppSelector } from "lib/redux/hooks";
 import type { JobPreviewPanelRef } from "./JobPreviewPanel";
 
 interface KeywordExtractionPanelProps {
@@ -22,286 +13,110 @@ interface KeywordExtractionPanelRef {
 export const KeywordExtractionPanel = forwardRef<KeywordExtractionPanelRef, KeywordExtractionPanelProps>(({
   jobPreviewRef,
 }, ref) => {
-  const dispatch = useAppDispatch();
   const {
     jobUrl,
     isValidUrl,
-    extractedKeywords,
-    isExtracting,
-    extractionError,
-    iframeLoaded,
   } = useAppSelector((state) => state.jobHunt);
   
-  const extractKeywords = async () => {
-    if (!isValidUrl || !jobPreviewRef.current) return;
-
-    dispatch(setIsExtracting(true));
-
-    let htmlContent = '';
-    let extractionMethod = '';
-
-    try {
-      // Step 1: Always wait for iframe to be fully loaded first
-      console.log('⏳ Ensuring iframe is fully loaded before extraction...');
-      
-      if (!iframeLoaded) {
-        console.log('📍 Iframe not loaded yet, waiting for load event...');
-        
-        // Wait for iframe to load with timeout
-        const loadTimeout = 15000; // 15 seconds timeout
-        const startTime = Date.now();
-        
-        while (!iframeLoaded && (Date.now() - startTime) < loadTimeout) {
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          // Check current iframe state from Redux
-          const currentState = store.getState?.() || ({ jobHunt: { iframeLoaded: false } } as any);
-          if (currentState.jobHunt?.iframeLoaded) {
-            console.log('✅ Iframe loaded during wait');
-            break;
-          }
-        }
-        
-        if (!iframeLoaded) {
-          console.log('⚠️ Iframe load timeout, proceeding with extraction anyway...');
-        }
-      } else {
-        console.log('✅ Iframe already loaded, proceeding with extraction');
-      }
-
-      // Step 2: Wait additional time for content to be fully rendered
-      console.log('⏳ Waiting for iframe content to be fully rendered...');
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Step 3: Now attempt iframe content extraction
-      console.log('🔍 Attempting iframe content extraction...');
-      htmlContent = await jobPreviewRef.current.waitForIframeContent(8, 1500) || '';
-      
-      if (htmlContent && htmlContent.length > 100) {
-        extractionMethod = 'iframe';
-        console.log('✅ Success: Iframe content extraction completed');
-      } else {
-        throw new Error('Iframe content empty or inaccessible after full loading');
-      }
-    } catch (iframeError) {
-      console.log('❌ Iframe extraction failed, falling back to allorigins proxy:', 
-        iframeError instanceof Error ? iframeError.message : String(iframeError));
-      
-      try {
-        // Fallback: Use allorigins proxy
-        console.log('🔄 Attempting allorigins proxy fallback...');
-        extractionMethod = 'allorigins';
-        const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(jobUrl)}`);
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch job posting content via proxy');
-        }
-
-        const data = await response.json();
-        htmlContent = data.contents;
-        console.log('✅ Success: Allorigins proxy extraction');
-      } catch (fallbackError) {
-        console.error('❌ All extraction methods failed:', 
-          fallbackError instanceof Error ? fallbackError.message : String(fallbackError));
-        throw new Error('Unable to extract content: Both iframe and proxy methods failed. The job posting may be protected against scraping.');
-      }
-    }
-
-    if (!htmlContent || htmlContent.length < 50) {
-      throw new Error('No meaningful content could be extracted from the job posting.');
-    }
-
-    console.log(`📊 Extraction successful via ${extractionMethod}. Content length: ${htmlContent.length} characters`);
-
-    try {
-      // Detect if this is a LinkedIn job posting
-      const isLinkedInJob = jobUrl.includes('linkedin.com') && jobUrl.includes('/jobs/');
-
-      let textContent = '';
-
-      if (isLinkedInJob) {
-        // Updated LinkedIn selectors - using only simple selectors (no combinators)
-        textContent = htmlToText(htmlContent, {
-          wordwrap: false,
-          preserveNewlines: false,
-          baseElements: {
-            selectors: [
-              '.jobs-description__content',
-              '.jobs-description-content',
-              '.jobs-description-content__text',
-              '.jobs-description-content__text--stretch',
-              '.jobs-box__html-content',
-              '.jobs-description__container',
-              '.jobs-description',
-              '#job-details',
-              '.jobs-description-content__text--stretch'
-            ],
-            orderBy: 'selectors',
-            returnDomByDefault: false
-          },
-          selectors: [
-            { selector: 'a', options: { ignoreHref: true } },
-            { selector: 'img', format: 'skip' },
-            { selector: 'nav', format: 'skip' },
-            { selector: 'header', format: 'skip' },
-            { selector: 'footer', format: 'skip' },
-            { selector: '.jobs-unified-top-card', format: 'skip' },
-            { selector: '.jobs-apply-button', format: 'skip' },
-            { selector: '.jobs-company', format: 'skip' },
-            { selector: '.jobs-poster__apply-button', format: 'skip' },
-            { selector: '.jobs-save-button', format: 'skip' },
-            { selector: '.jobs-details-top-card', format: 'skip' }
-          ]
-        });
-      } else {
-        // For other job sites, use general extraction
-        textContent = htmlToText(htmlContent, {
-          wordwrap: false,
-          preserveNewlines: false,
-          selectors: [
-            { selector: 'a', options: { ignoreHref: true } },
-            { selector: 'img', format: 'skip' },
-            { selector: 'nav', format: 'skip' },
-            { selector: 'header', format: 'skip' },
-            { selector: 'footer', format: 'skip' },
-            { selector: '.navigation', format: 'skip' },
-            { selector: '.sidebar', format: 'skip' },
-            { selector: '.menu', format: 'skip' }
-          ]
-        });
-      }
-
-      // Fallback if no text was extracted with specific selectors
-      if (!textContent.trim() && isLinkedInJob) {
-        // Try a more aggressive extraction approach
-        textContent = htmlToText(htmlContent, {
-          wordwrap: false,
-          preserveNewlines: false,
-          selectors: [
-            { selector: 'a', options: { ignoreHref: true } },
-            { selector: 'img', format: 'skip' },
-            { selector: 'nav', format: 'skip' },
-            { selector: 'header', format: 'skip' },
-            { selector: 'footer', format: 'skip' },
-            { selector: 'script', format: 'skip' },
-            { selector: 'style', format: 'skip' }
-          ]
-        });
-        
-        // Only alert if we still don't have meaningful content
-        if (!textContent.trim() || textContent.length < 100) {
-          console.warn('Unable to extract job description from LinkedIn. The page structure may have changed or access may be restricted.');
-        } else {
-          console.log('Used fallback extraction for LinkedIn - got', textContent.length, 'characters');
-        }
-      }
-
-      // Store the extracted text in Redux
-      dispatch(setExtractedText(textContent));
-
-      // Extract keywords
-      const keywords = keyword_extractor.extract(textContent, {
-        language: 'english',
-        remove_digits: true,
-        return_changed_case: true,
-        remove_duplicates: true
-      });
-
-      // Enhanced filtering for job-related keywords
-      const commonWords = [
-        'the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'any', 'can', 'had', 
-        'her', 'was', 'one', 'our', 'out', 'day', 'get', 'has', 'him', 'his', 'how', 
-        'its', 'may', 'new', 'now', 'old', 'see', 'two', 'who', 'boy', 'did', 'she', 
-        'use', 'her', 'way', 'many', 'will', 'would', 'could', 'should', 'might', 
-        'must', 'shall', 'about', 'after', 'before', 'during', 'while', 'when', 
-        'where', 'why', 'what', 'which', 'this', 'that', 'these', 'those', 'with', 
-        'without', 'within', 'through', 'between', 'among', 'above', 'below', 'under',
-        'linkedin', 'jobs', 'job', 'career', 'careers', 'apply', 'application', 'view',
-        'show', 'more', 'less', 'click', 'here', 'link', 'page', 'site', 'website'
-      ];
-
-      const filteredKeywords = keywords
-        .filter(keyword => keyword.length >= 3)
-        .filter(keyword => !commonWords.includes(keyword.toLowerCase()))
-        .filter(keyword => !/^\d+$/.test(keyword)) // Remove pure numbers
-        .slice(0, 30); // Limit to top 30 keywords
-
-      dispatch(setExtractedKeywords(filteredKeywords));
-      
-      // Add a success message indicating which extraction method was used
-      switch (extractionMethod) {
-        case 'iframe':
-          console.log('🎯 Keywords extracted from iframe content (after full loading)');
-          break;
-        case 'allorigins':
-          console.log('🎯 Keywords extracted via allorigins proxy');
-          break;
-        default:
-          console.log('🎯 Keywords extracted successfully');
-      }
-      
-    } catch (error) {
-      console.error('Error extracting keywords:', error instanceof Error ? error.message : String(error));
-      dispatch(setExtractionError('Failed to extract keywords. This might be due to CORS restrictions or network issues.'));
-    } finally {
-      dispatch(setIsExtracting(false));
-    }
+  const extractKeywords = () => {
+    // This functionality has been moved to the browser extension
+    console.log('Keyword extraction is now handled by the OpenResume browser extension');
   };
 
-  // Expose extractKeywords function to parent component
+  // Expose extractKeywords function to parent component for compatibility
   useImperativeHandle(ref, () => ({
     extractKeywords,
   }));
 
+  const openExtensionPage = () => {
+    if (typeof chrome !== 'undefined' && chrome.runtime) {
+      // We're in the extension context, open the popup
+      chrome.action.openPopup();
+    } else {
+      // We're in the web app, show instructions
+      alert('Please install the OpenResume browser extension to use keyword extraction features.');
+    }
+  };
+
   return (
-    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-green-800">
-          🤖 Automated Text & Keyword Extraction
+        <h3 className="text-sm font-semibold text-blue-800">
+          🚀 Enhanced Keyword Extraction
         </h3>
-        <button
-          onClick={extractKeywords}
-          disabled={isExtracting}
-          className="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition-colors disabled:opacity-50"
-        >
-          {isExtracting ? "Extracting..." : "Re-extract"}
-        </button>
       </div>
 
-      {isExtracting && (
-        <div className="flex items-center gap-2 text-green-700 text-sm">
-          <div className="animate-spin w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full"></div>
-          Analyzing job posting...
-        </div>
-      )}
-
-      {extractionError && (
-        <div className="text-red-600 text-sm bg-red-50 border border-red-200 rounded p-2">
-          {extractionError}
-        </div>
-      )}
-
-      {extractedKeywords.length > 0 && !isExtracting && (
-        <div>
-          <div className="bg-white border border-green-200 rounded p-3 mb-3">
-            <div className="text-xs text-green-700 mb-2">
-              Found {extractedKeywords.length} keywords:
+      <div className="space-y-3">
+        <div className="bg-gradient-to-r from-blue-100 to-purple-100 rounded-lg p-4 border border-blue-200">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-lg">🎯</span>
+            <h4 className="font-semibold text-blue-900">Moved to Browser Extension!</h4>
+          </div>
+          <p className="text-sm text-blue-800 mb-3">
+            Keyword extraction is now powered by our browser extension for better performance and direct page access.
+          </p>
+          
+          <div className="space-y-2 text-xs text-blue-700">
+            <div className="flex items-start gap-2">
+              <span className="text-green-600 font-bold">✓</span>
+              <span>Direct access to job posting content</span>
             </div>
-            <div className="text-sm text-gray-700 max-h-24 overflow-y-auto">
-              {extractedKeywords.join(', ')}
+            <div className="flex items-start gap-2">
+              <span className="text-green-600 font-bold">✓</span>
+              <span>No CORS or iframe limitations</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-green-600 font-bold">✓</span>
+              <span>Works on any job site (LinkedIn, Indeed, etc.)</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-green-600 font-bold">✓</span>
+              <span>Auto-detection of job postings</span>
             </div>
           </div>
-          <button
-            onClick={() => {
-              navigator.clipboard.writeText(extractedKeywords.join(', '));
-            }}
-            className="w-full bg-green-600 text-white px-4 py-2 rounded-md text-sm hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-          >
-            <span>📋</span>
-            Copy Keywords
-          </button>
         </div>
-      )}
+
+        {isValidUrl && (
+          <div className="bg-white border border-blue-200 rounded-lg p-3">
+            <h5 className="font-medium text-blue-900 mb-2 text-sm">How to extract keywords:</h5>
+            <ol className="text-xs text-blue-700 space-y-1 pl-4">
+              <li>1. Install the OpenResume browser extension</li>
+              <li>2. Navigate to the job posting: <code className="bg-blue-100 px-1 rounded text-xs">{jobUrl}</code></li>
+              <li>3. Click the extension icon and use "Extract Keywords"</li>
+              <li>4. Copy the keywords and paste them into your resume</li>
+            </ol>
+          </div>
+        )}
+
+        <div className="flex gap-2">
+          <button
+            onClick={openExtensionPage}
+            className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+          >
+            <span>🔧</span>
+            Use Extension
+          </button>
+          
+          <a
+            href="https://github.com/xitanggg/open-resume/tree/main/extension"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md text-sm hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 text-center no-underline"
+          >
+            <span>📥</span>
+            Install Extension
+          </a>
+        </div>
+
+        <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
+          <div className="flex items-start gap-2">
+            <span className="text-yellow-600">💡</span>
+            <div className="text-xs text-yellow-800">
+              <strong>Pro Tip:</strong> The extension can auto-extract keywords as you browse job sites, making it even faster to optimize your resume!
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 });

@@ -1,250 +1,266 @@
 // Content script for OpenResume extension
-// This script runs on web pages and extracts resume-relevant data
+// This script runs on web pages and extracts keywords from job postings
 
-interface ResumeData {
-  profile?: {
-    name?: string;
-    email?: string;
-    phone?: string;
-    location?: string;
-    summary?: string;
-  };
-  workExperiences?: Array<{
-    company: string;
-    position: string;
-    startDate: string;
-    endDate: string;
-    description: string;
-  }>;
-  education?: Array<{
-    school: string;
-    degree: string;
-    field: string;
-    startDate: string;
-    endDate: string;
-  }>;
-  skills?: Array<{
-    category: string;
-    skills: string[];
-  }>;
+// Log that the script is starting to load
+console.log('OpenResume content script starting to load...');
+
+interface KeywordExtractionResult {
+  extractedText: string;
+  extractedKeywords: string[];
+  extractionMethod: string;
+  success: boolean;
+  error?: string;
 }
 
-class ResumeExtractor {
-  private extractedData: ResumeData = {};
+// Simple keyword extraction function (fallback without external dependencies)
+function extractKeywordsSimple(text: string): string[] {
+  // Convert to lowercase and split into words
+  const words = text.toLowerCase()
+    .replace(/[^\w\s]/g, ' ') // Remove punctuation
+    .split(/\s+/)
+    .filter(word => word.length >= 3); // Only words 3+ characters
 
-  // Extract profile information
-  private extractProfile(): ResumeData['profile'] {
-    const profile: ResumeData['profile'] = {};
+  // Common words to filter out
+  const commonWords = new Set([
+    'the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'any', 'can', 'had', 
+    'her', 'was', 'one', 'our', 'out', 'day', 'get', 'has', 'him', 'his', 'how', 
+    'its', 'may', 'new', 'now', 'old', 'see', 'two', 'who', 'boy', 'did', 'she', 
+    'use', 'way', 'many', 'will', 'would', 'could', 'should', 'might', 'must', 
+    'shall', 'about', 'after', 'before', 'during', 'while', 'when', 'where', 
+    'why', 'what', 'which', 'this', 'that', 'these', 'those', 'with', 'without', 
+    'within', 'through', 'between', 'among', 'above', 'below', 'under',
+    'linkedin', 'jobs', 'job', 'career', 'careers', 'apply', 'application', 'view',
+    'show', 'more', 'less', 'click', 'here', 'link', 'page', 'site', 'website'
+  ]);
 
-    // Try to find name
-    const nameSelectors = [
-      'h1[class*="name"]',
-      '[class*="profile"] h1',
-      '[class*="header"] h1',
-      '.name',
-      '#name',
-      '[data-testid*="name"]'
-    ];
+  // Count word frequencies
+  const wordCount = new Map<string, number>();
+  words.forEach(word => {
+    if (!commonWords.has(word) && !/^\d+$/.test(word)) {
+      wordCount.set(word, (wordCount.get(word) || 0) + 1);
+    }
+  });
+
+  // Sort by frequency and return keywords
+  return Array.from(wordCount.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([word]) => word);
+}
+
+// Simple HTML to text conversion
+function htmlToTextSimple(html: string): string {
+  try {
+    // Create a temporary div to parse HTML
+    const div = document.createElement('div');
+    div.innerHTML = html;
     
-    for (const selector of nameSelectors) {
-      const element = document.querySelector(selector);
-      if (element?.textContent?.trim()) {
-        profile.name = element.textContent.trim();
-        break;
-      }
-    }
-
-    // Try to find email
-    const emailRegex = /[\w.-]+@[\w.-]+\.\w+/g;
-    const bodyText = document.body.innerText;
-    const emailMatch = bodyText.match(emailRegex);
-    if (emailMatch) {
-      profile.email = emailMatch[0];
-    }
-
-    // Try to find phone
-    const phoneRegex = /(?:\+?1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})/g;
-    const phoneMatch = bodyText.match(phoneRegex);
-    if (phoneMatch) {
-      profile.phone = phoneMatch[0];
-    }
-
-    // Try to find location
-    const locationSelectors = [
-      '[class*="location"]',
-      '[class*="address"]',
-      '[class*="city"]'
-    ];
+    // Remove script and style elements
+    const scripts = div.querySelectorAll('script, style');
+    scripts.forEach(script => script.remove());
     
-    for (const selector of locationSelectors) {
-      const element = document.querySelector(selector);
-      if (element?.textContent?.trim()) {
-        profile.location = element.textContent.trim();
-        break;
-      }
-    }
+    // Get text content and normalize whitespace
+    return div.textContent || div.innerText || '';
+  } catch (error) {
+    console.error('Error converting HTML to text:', error);
+    return '';
+  }
+}
 
-    return profile;
+class KeywordExtractor {
+  constructor() {
+    console.log('KeywordExtractor initialized');
   }
 
-  // Extract work experience
-  private extractWorkExperience(): ResumeData['workExperiences'] {
-    const experiences: ResumeData['workExperiences'] = [];
+  // Advanced keyword extraction
+  public async extractKeywords(url?: string): Promise<KeywordExtractionResult> {
+    console.log('Starting keyword extraction for URL:', url || window.location.href);
     
-    // Common selectors for job listings and profiles
-    const experienceSelectors = [
-      '[class*="experience"]',
-      '[class*="job"]',
-      '[class*="position"]',
-      '[class*="work"]',
-      '.employment',
-      '#experience'
-    ];
-
-    for (const selector of experienceSelectors) {
-      const sections = document.querySelectorAll(selector);
-      sections.forEach(section => {
-        const company = section.querySelector('[class*="company"], [class*="employer"]')?.textContent?.trim();
-        const position = section.querySelector('[class*="title"], [class*="role"], [class*="position"]')?.textContent?.trim();
-        const description = section.querySelector('[class*="description"], [class*="summary"]')?.textContent?.trim();
-        
-        if (company && position) {
-          experiences.push({
-            company,
-            position,
-            startDate: '',
-            endDate: '',
-            description: description || ''
-          });
-        }
-      });
-    }
-
-    return experiences.length > 0 ? experiences : undefined;
-  }
-
-  // Extract education
-  private extractEducation(): ResumeData['education'] {
-    const education: ResumeData['education'] = [];
-    
-    const educationSelectors = [
-      '[class*="education"]',
-      '[class*="school"]',
-      '[class*="university"]',
-      '[class*="degree"]'
-    ];
-
-    for (const selector of educationSelectors) {
-      const sections = document.querySelectorAll(selector);
-      sections.forEach(section => {
-        const school = section.querySelector('[class*="school"], [class*="university"], [class*="institution"]')?.textContent?.trim();
-        const degree = section.querySelector('[class*="degree"], [class*="certification"]')?.textContent?.trim();
-        
-        if (school || degree) {
-          education.push({
-            school: school || '',
-            degree: degree || '',
-            field: '',
-            startDate: '',
-            endDate: ''
-          });
-        }
-      });
-    }
-
-    return education.length > 0 ? education : undefined;
-  }
-
-  // Extract skills
-  private extractSkills(): ResumeData['skills'] {
-    const skills: ResumeData['skills'] = [];
-    
-    const skillSelectors = [
-      '[class*="skill"]',
-      '[class*="technology"]',
-      '[class*="competenc"]',
-      '.tags',
-      '.chips'
-    ];
-
-    const allSkills: string[] = [];
-    
-    for (const selector of skillSelectors) {
-      const elements = document.querySelectorAll(selector);
-      elements.forEach(element => {
-        const text = element.textContent?.trim();
-        if (text && text.length < 50) { // Likely a skill if short
-          allSkills.push(text);
-        }
-      });
-    }
-
-    if (allSkills.length > 0) {
-      skills.push({
-        category: 'General',
-        skills: allSkills
-      });
-    }
-
-    return skills.length > 0 ? skills : undefined;
-  }
-
-  // Main extraction method
-  public extractResumeData(): ResumeData {
-    this.extractedData = {
-      profile: this.extractProfile(),
-      workExperiences: this.extractWorkExperience(),
-      education: this.extractEducation(),
-      skills: this.extractSkills()
+    const result: KeywordExtractionResult = {
+      extractedText: '',
+      extractedKeywords: [],
+      extractionMethod: '',
+      success: false
     };
 
-    return this.extractedData;
+    try {
+      let htmlContent = '';
+      let extractionMethod = '';
+
+      // Method 1: Extract from current page DOM
+      htmlContent = document.documentElement.outerHTML;
+      extractionMethod = 'direct-dom';
+      
+      if (!htmlContent || htmlContent.length < 50) {
+        throw new Error('No meaningful content found on the current page.');
+      }
+
+      console.log(`📊 Extraction successful via ${extractionMethod}. Content length: ${htmlContent.length} characters`);
+
+      // Detect if this is a LinkedIn job posting
+      const isLinkedInJob = window.location.href.indexOf('linkedin.com') !== -1 && window.location.href.indexOf('/jobs/') !== -1;
+
+      let textContent = '';
+
+      if (isLinkedInJob) {
+        // For LinkedIn, try to extract job description specifically
+        const jobDescSelectors = [
+          '.jobs-description__content',
+          '.jobs-description-content',
+          '.jobs-description-content__text',
+          '.jobs-box__html-content',
+          '.jobs-description__container',
+          '.jobs-description'
+        ];
+        
+        for (const selector of jobDescSelectors) {
+          const element = document.querySelector(selector);
+          if (element) {
+            textContent = element.textContent || '';
+            console.log('Found LinkedIn job description via selector:', selector);
+            break;
+          }
+        }
+        
+        // Fallback to general extraction
+        if (!textContent.trim()) {
+          textContent = htmlToTextSimple(htmlContent);
+          console.log('Using fallback text extraction for LinkedIn');
+        }
+      } else {
+        // For other sites, use general extraction
+        textContent = htmlToTextSimple(htmlContent);
+        console.log('Using general text extraction');
+      }
+
+      result.extractedText = textContent;
+
+      // Extract keywords using simple extraction
+      const keywords = extractKeywordsSimple(textContent);
+
+      result.extractedKeywords = keywords;
+      result.extractionMethod = extractionMethod;
+      result.success = true;
+
+      console.log('🎯 Keywords extracted successfully:', keywords.length, 'keywords found');
+      
+    } catch (error) {
+      console.error('Error extracting keywords:', error instanceof Error ? error.message : String(error));
+      result.error = error instanceof Error ? error.message : 'Unknown error occurred during keyword extraction';
+    }
+
+    return result;
   }
 
-  // Check if current page contains resume-like content
-  public hasResumeContent(): boolean {
-    const resumeIndicators = [
-      'experience',
-      'education',
-      'skills',
-      'resume',
-      'cv',
-      'curriculum vitae',
-      'work history',
-      'employment',
-      'qualifications'
+  // Check if current page is a job posting
+  public hasJobContent(): boolean {
+    const jobIndicators = [
+      'job description',
+      'responsibilities',
+      'requirements',
+      'qualifications',
+      'apply now',
+      'job opening',
+      'position',
+      'salary',
+      'benefits',
+      'job posting'
     ];
 
     const pageText = document.body.innerText.toLowerCase();
-    return resumeIndicators.some(indicator => pageText.includes(indicator));
+    const pageUrl = window.location.href.toLowerCase();
+    
+    // Check for job sites in URL
+    const jobSites = [
+      'linkedin.com/jobs',
+      'indeed.com',
+      'glassdoor.com',
+      'monster.com',
+      'ziprecruiter.com',
+      'careerbuilder.com',
+      'jobs.',
+      'careers.',
+      '/jobs/',
+      '/careers/'
+    ];
+
+    const isJobSite = jobSites.some(site => pageUrl.indexOf(site) !== -1);
+    const hasJobKeywords = jobIndicators.some(indicator => pageText.indexOf(indicator) !== -1);
+
+    const hasJob = isJobSite || hasJobKeywords;
+    console.log('Job content detection - isJobSite:', isJobSite, 'hasJobKeywords:', hasJobKeywords, 'result:', hasJob);
+    
+    return hasJob;
   }
 }
 
 // Initialize content script
-const extractor = new ResumeExtractor();
+console.log('Initializing KeywordExtractor...');
+const extractor = new KeywordExtractor();
 
 // Listen for messages from popup/background
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'extractResumeData') {
-    const data = extractor.extractResumeData();
-    sendResponse(data);
-  } else if (request.action === 'checkResumeContent') {
-    const hasContent = extractor.hasResumeContent();
-    sendResponse({ hasResumeContent: hasContent });
+  console.log('Content script received message:', request.action);
+  
+  try {
+    if (request.action === 'ping') {
+      // Simple ping response to check if content script is loaded
+      console.log('Responding to ping');
+      sendResponse({ status: 'loaded' });
+    } else if (request.action === 'extractKeywords') {
+      // Handle async keyword extraction
+      console.log('Starting keyword extraction...');
+      extractor.extractKeywords(request.url).then(result => {
+        console.log('Keywords extracted:', result);
+        sendResponse(result);
+      }).catch(error => {
+        console.error('Keyword extraction error:', error);
+        sendResponse({
+          extractedText: '',
+          extractedKeywords: [],
+          extractionMethod: '',
+          success: false,
+          error: error instanceof Error ? error.message : String(error)
+        });
+      });
+      return true; // Keep message channel open for async response
+    } else if (request.action === 'checkJobContent') {
+      console.log('Checking job content...');
+      const hasJobContent = extractor.hasJobContent();
+      console.log('Job content check result:', hasJobContent);
+      sendResponse({ hasJobContent });
+    }
+  } catch (error) {
+    console.error('Error handling message:', error);
+    sendResponse({ error: error instanceof Error ? error.message : String(error) });
   }
   
   return true; // Keep message channel open for async response
 });
 
 // Auto-extract on page load if enabled
-chrome.storage.sync.get({ autoExtract: true }, (result: any) => {
-  if (result.autoExtract && extractor.hasResumeContent()) {
-    // Notify background script that resume content was found
-    chrome.runtime.sendMessage({
-      action: 'resumeContentFound',
-      data: extractor.extractResumeData()
-    });
-  }
-});
+try {
+  chrome.storage.sync.get({ autoExtract: true }, (result: any) => {
+    console.log('Auto-extract setting:', result.autoExtract);
+    if (result.autoExtract) {
+      if (extractor.hasJobContent()) {
+        console.log('Auto-extracting keywords from job posting...');
+        // Auto-extract keywords from job postings
+        extractor.extractKeywords().then(keywordResult => {
+          if (keywordResult.success) {
+            console.log('Auto-extraction successful, sending to background script');
+            chrome.runtime.sendMessage({
+              action: 'keywordsExtracted',
+              data: keywordResult
+            });
+          }
+        }).catch(error => {
+          console.error('Auto-extraction failed:', error);
+        });
+      }
+    }
+  });
+} catch (error) {
+  console.error('Error during auto-extract initialization:', error);
+}
 
-console.log('OpenResume content script loaded'); 
+console.log('OpenResume content script loaded with keyword extraction'); 

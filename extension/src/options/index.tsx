@@ -66,10 +66,10 @@ const Options: React.FC<OptionsProps> = () => {
                 checked={settings.autoExtract}
                 onChange={(e) => setSettings({...settings, autoExtract: e.target.checked})}
               />
-              Auto-extract resume data when visiting job sites
+              Auto-extract keywords when visiting job sites
             </label>
             <p className="setting-description">
-              Automatically analyze pages for potential resume content
+              Automatically extract keywords from job postings when browsing
             </p>
           </div>
 
@@ -83,7 +83,7 @@ const Options: React.FC<OptionsProps> = () => {
               Show notifications
             </label>
             <p className="setting-description">
-              Display notifications when resume data is found or actions are completed
+              Display notifications when keywords are extracted or actions are completed
             </p>
           </div>
 
@@ -154,7 +154,7 @@ const Options: React.FC<OptionsProps> = () => {
               <strong>OpenResume Extension</strong> v1.0.0
             </p>
             <p>
-              A browser extension that integrates with OpenResume to help you build professional resumes.
+              A browser extension that extracts keywords from job postings to help you optimize your resume.
             </p>
             <p>
               <a href="https://github.com/xitanggg/open-resume" target="_blank" rel="noopener noreferrer">
