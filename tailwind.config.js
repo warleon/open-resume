@@ -1,4 +1,6 @@
 /** @type {import('tailwindcss').Config} */
+import { config } from 'dotenv';
+config();
 module.exports = {
   content: [
     "./src/app/**/*.{ts,tsx,mdx}",
@@ -7,7 +9,7 @@ module.exports = {
   theme: {
     extend: {
       backgroundImage: {
-        dot: "url('/assets/dots.svg')",
+        dot: `url('${process.env.PUBLIC_URL}/assets/dots.svg')`,
       },
     },
   },

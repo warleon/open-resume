@@ -1,12 +1,18 @@
 /** @type {import('tailwindcss').Config} */
+const { config } = require('dotenv');
+config();
+
 module.exports = {
   content: [
     "./extension/src/**/*.{ts,tsx,html}"
   ],
   theme: {
     extend: {
-      // Remove the dots.svg background image for the extension
-      // Extension doesn't need the same background patterns as the main app
+      // Fix the dots.svg path for the extension
+      // The webpack config copies assets to ./assets/ in the extension dist
+      backgroundImage: {
+        dot: `url('${process.env.PUBLIC_URL}/assets/dots.svg')`,
+      },
     },
   },
   corePlugins: {
