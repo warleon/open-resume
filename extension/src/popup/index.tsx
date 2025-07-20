@@ -19,7 +19,6 @@ const Popup: React.FC<PopupProps> = () => {
   const [hasJobContent, setHasJobContent] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [contentScriptLoaded, setContentScriptLoaded] = React.useState<boolean | null>(null);
-  const [chatGptTabId, setChatGptTabId] = React.useState<number | null>(null);
 
   React.useEffect(() => {
     // Get current active tab
@@ -31,13 +30,6 @@ const Popup: React.FC<PopupProps> = () => {
         if (tabs[0].id) {
           checkContentScriptStatus(tabs[0].id);
         }
-      }
-    });
-
-    // Check for existing ChatGPT tabs using background script
-    chrome.runtime.sendMessage({ action: 'findChatGPTTab' }, (response) => {
-      if (response && response.found) {
-        setChatGptTabId(response.tabId);
       }
     });
   }, []);
@@ -137,63 +129,6 @@ ${fullExtractedText}`;
 7. Keywords for resume optimization
 
 Please provide the final result as a comma-separated list of keywords ready to be copied.`;
-    }
-  };
-
-  const navigateToChatGPT = async (): Promise<boolean> => {
-    return new Promise((resolve) => {
-      console.log('Requesting ChatGPT navigation from background script...');
-      
-      chrome.runtime.sendMessage({ 
-        action: 'navigateToChatGPT' 
-      }, (response) => {
-        if (chrome.runtime.lastError) {
-          console.error('Error sending navigation message:', chrome.runtime.lastError);
-          resolve(false);
-        } else {
-          console.log('Navigation response:', response);
-          if (response && response.success) {
-            setChatGptTabId(response.tabId);
-            resolve(true);
-          } else {
-            console.error('Navigation failed:', response?.error || 'Unknown error');
-            resolve(false);
-          }
-        }
-      });
-    });
-  };
-
-  const copyPromptAndNavigate = async () => {
-    try {
-      console.log('Starting copyPromptAndNavigate...');
-      
-      const prompt = generateAIPrompt();
-      await navigator.clipboard.writeText(prompt);
-      console.log('Prompt copied to clipboard');
-      
-      // Show success feedback briefly before navigating
-      setError('✅ Prompt copied! Navigating to ChatGPT...');
-      
-      // Navigate to ChatGPT
-      const success = await navigateToChatGPT();
-      console.log('Navigation result:', success);
-      
-      if (success) {
-        console.log('Successfully navigated to ChatGPT, closing popup...');
-        setError('✅ Success! Opening ChatGPT...');
-        
-        // Close the popup after successful action
-        setTimeout(() => {
-          window.close();
-        }, 800);
-      } else {
-        console.error('Failed to navigate to ChatGPT');
-        setError('❌ Failed to navigate to ChatGPT. Please check if the extension has proper permissions.');
-      }
-    } catch (error) {
-      console.error('Failed to copy prompt or navigate:', error);
-      setError(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`);
     }
   };
 
@@ -323,12 +258,6 @@ Please provide the final result as a comma-separated list of keywords ready to b
               <span className="job-badge">🎯 Job Posting Detected</span>
             </div>
           )}
-
-          {chatGptTabId && (
-            <div className="chatgpt-indicator mt-2">
-              <span className="chatgpt-badge">💬 ChatGPT tab available</span>
-            </div>
-          )}
         </div>
 
         {error && (
@@ -378,19 +307,12 @@ Please provide the final result as a comma-separated list of keywords ready to b
           <div className="ai-prompt-preview">
             <h4>📝 AI Analysis Prompt Preview:</h4>
             
-            <div className="ai-prompt-actions flex gap-2 mb-3">
+            <div className="ai-prompt-actions mb-2">
               <button 
-                className="btn btn-ai-primary flex-1"
-                onClick={copyPromptAndNavigate}
-              >
-                🚀 Copy AI Prompt & Go to ChatGPT
-              </button>
-              
-              <button 
-                className="btn btn-ai-secondary flex-1"
+                className="btn btn-ai-secondary"
                 onClick={copyPromptOnly}
               >
-                📋 Copy AI Prompt Only
+                📋 Copy AI Prompt
               </button>
             </div>
             
@@ -405,7 +327,6 @@ Please provide the final result as a comma-separated list of keywords ready to b
           <ul className="space-y-1">
             <li>Extract keywords from job postings</li>
             <li>Generate AI analysis prompts</li>
-            <li>Navigate to ChatGPT with smart tab management</li>
             <li>Optimize your resume with extracted insights</li>
           </ul>
         </div>
