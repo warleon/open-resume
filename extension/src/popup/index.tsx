@@ -140,76 +140,28 @@ Please provide the final result as a comma-separated list of keywords ready to b
     }
   };
 
-  const navigateToChatGPT = async (): Promise<number | null> => {
-    try {
-      console.log('Starting ChatGPT navigation...');
+  const navigateToChatGPT = async (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      console.log('Requesting ChatGPT navigation from background script...');
       
-      // First, try to find existing ChatGPT tab
-      const findResponse = await new Promise<any>((resolve, reject) => {
-        chrome.runtime.sendMessage({ action: 'findChatGPTTab' }, (response) => {
-          if (chrome.runtime.lastError) {
-            reject(new Error(chrome.runtime.lastError.message));
-          } else {
-            resolve(response);
-          }
-        });
-      });
-
-      console.log('Find ChatGPT tab response:', findResponse);
-
-      if (findResponse && findResponse.found) {
-        // Try to focus the existing tab
-        console.log('Attempting to focus existing ChatGPT tab:', findResponse.tabId);
-        
-        const focusResponse = await new Promise<any>((resolve, reject) => {
-          chrome.runtime.sendMessage({
-            action: 'focusChatGPTTab',
-            tabId: findResponse.tabId,
-            windowId: findResponse.windowId
-          }, (response) => {
-            if (chrome.runtime.lastError) {
-              reject(new Error(chrome.runtime.lastError.message));
-            } else {
-              resolve(response);
-            }
-          });
-        });
-
-        console.log('Focus response:', focusResponse);
-
-        if (focusResponse && focusResponse.success) {
-          setChatGptTabId(findResponse.tabId);
-          return findResponse.tabId;
+      chrome.runtime.sendMessage({ 
+        action: 'navigateToChatGPT' 
+      }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('Error sending navigation message:', chrome.runtime.lastError);
+          resolve(false);
         } else {
-          console.log('Failed to focus existing tab, creating new one...');
-        }
-      }
-
-      // Create new ChatGPT tab (either no existing tab found or failed to focus)
-      console.log('Creating new ChatGPT tab...');
-      
-      const createResponse = await new Promise<any>((resolve, reject) => {
-        chrome.runtime.sendMessage({ action: 'createChatGPTTab' }, (response) => {
-          if (chrome.runtime.lastError) {
-            reject(new Error(chrome.runtime.lastError.message));
+          console.log('Navigation response:', response);
+          if (response && response.success) {
+            setChatGptTabId(response.tabId);
+            resolve(true);
           } else {
-            resolve(response);
+            console.error('Navigation failed:', response?.error || 'Unknown error');
+            resolve(false);
           }
-        });
+        }
       });
-
-      console.log('Create ChatGPT tab response:', createResponse);
-
-      if (createResponse && createResponse.success) {
-        setChatGptTabId(createResponse.tabId);
-        return createResponse.tabId;
-      } else {
-        throw new Error('Failed to create ChatGPT tab');
-      }
-    } catch (error) {
-      console.error('Error in navigateToChatGPT:', error);
-      return null;
-    }
+    });
   };
 
   const copyPromptAndNavigate = async () => {
@@ -224,10 +176,10 @@ Please provide the final result as a comma-separated list of keywords ready to b
       setError('✅ Prompt copied! Navigating to ChatGPT...');
       
       // Navigate to ChatGPT
-      const tabId = await navigateToChatGPT();
-      console.log('Navigation result, tabId:', tabId);
+      const success = await navigateToChatGPT();
+      console.log('Navigation result:', success);
       
-      if (tabId) {
+      if (success) {
         console.log('Successfully navigated to ChatGPT, closing popup...');
         setError('✅ Success! Opening ChatGPT...');
         
@@ -236,8 +188,8 @@ Please provide the final result as a comma-separated list of keywords ready to b
           window.close();
         }, 800);
       } else {
-        console.error('Failed to get tabId from navigation');
-        setError('❌ Failed to navigate to ChatGPT. Please check permissions.');
+        console.error('Failed to navigate to ChatGPT');
+        setError('❌ Failed to navigate to ChatGPT. Please check if the extension has proper permissions.');
       }
     } catch (error) {
       console.error('Failed to copy prompt or navigate:', error);
@@ -325,6 +277,7 @@ Please provide the final result as a comma-separated list of keywords ready to b
     });
   };
 
+
   return (
     <div className="popup-container">
       <div className="popup-header">
@@ -379,7 +332,7 @@ Please provide the final result as a comma-separated list of keywords ready to b
         </div>
 
         {error && (
-          <div className={`error-message ${error.startsWith('✅') ? 'success-message' : ''}`}>
+          <div className={`error-message ${error.startsWith('✅') ? 'success-message' : ''} absolute top-32 left-1/2 -translate-x-1/2`}>
             <p>{error}</p>
           </div>
         )}

@@ -17,7 +17,12 @@ chrome.runtime.onInstalled.addListener((details: chrome.runtime.InstalledDetails
 chrome.runtime.onMessage.addListener((request: any, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) => {
   console.log('Background received message:', request.action);
   
-  if (request.action === 'keywordsExtracted') {
+  if (request.action === 'ping') {
+    // Handle ping for testing communication
+    console.log('Ping received from:', sender.tab ? `tab ${sender.tab.id}` : 'popup');
+    sendResponse({ status: 'pong', timestamp: Date.now() });
+    return true;
+  } else if (request.action === 'keywordsExtracted') {
     // Handle keyword extraction results
     console.log('Keywords extracted:', request.data);
     
@@ -36,6 +41,61 @@ chrome.runtime.onMessage.addListener((request: any, sender: chrome.runtime.Messa
         console.log(`Keywords extracted: ${request.data.extractedKeywords.length} keywords found`);
       }
     });
+  } else if (request.action === 'navigateToChatGPT') {
+    // Handle unified ChatGPT navigation
+    console.log('Handling unified ChatGPT navigation...');
+    
+    // Step 1: Find existing ChatGPT tabs
+    chrome.tabs.query({ url: "*://chatgpt.com/*" }, (tabs) => {
+      if (chrome.runtime.lastError) {
+        console.error('Error finding ChatGPT tabs:', chrome.runtime.lastError);
+        sendResponse({ success: false, error: chrome.runtime.lastError.message });
+        return;
+      }
+      
+      console.log('Found ChatGPT tabs:', tabs.length);
+      
+      if (tabs.length > 0) {
+        // Step 2: Try to focus existing tab
+        const tab = tabs[0];
+        console.log('Attempting to focus existing ChatGPT tab:', tab.id);
+        
+        // First check if tab still exists
+        chrome.tabs.get(tab.id!, (existingTab) => {
+          if (chrome.runtime.lastError) {
+            console.log('Existing tab no longer valid, creating new one...');
+            createNewChatGPTTab(sendResponse);
+          } else {
+            // Tab exists, focus it
+            chrome.tabs.update(tab.id!, { active: true }, (updatedTab) => {
+              if (chrome.runtime.lastError) {
+                console.error('Error focusing tab, creating new one:', chrome.runtime.lastError);
+                createNewChatGPTTab(sendResponse);
+              } else {
+                // Also focus the window
+                chrome.windows.update(tab.windowId!, { focused: true }, (window) => {
+                  if (chrome.runtime.lastError) {
+                    console.warn('Could not focus window, but tab was activated');
+                  }
+                  console.log('Successfully focused existing ChatGPT tab');
+                  sendResponse({ 
+                    success: true, 
+                    tabId: tab.id, 
+                    action: 'focused_existing' 
+                  });
+                });
+              }
+            });
+          }
+        });
+      } else {
+        // Step 3: No existing tabs, create new one
+        console.log('No existing ChatGPT tabs found, creating new one...');
+        createNewChatGPTTab(sendResponse);
+      }
+    });
+    
+    return true; // Keep message channel open for async response
   } else if (request.action === 'findChatGPTTab') {
     // Handle ChatGPT tab finding
     console.log('Searching for existing ChatGPT tabs...');
@@ -137,6 +197,34 @@ chrome.runtime.onMessage.addListener((request: any, sender: chrome.runtime.Messa
   
   return true;
 });
+
+// Helper function to create new ChatGPT tab
+function createNewChatGPTTab(sendResponse: (response?: any) => void) {
+  console.log('Creating new ChatGPT tab...');
+  
+  chrome.tabs.create({ 
+    url: 'https://chatgpt.com', 
+    active: true 
+  }, (tab) => {
+    if (chrome.runtime.lastError) {
+      console.error('Error creating new ChatGPT tab:', chrome.runtime.lastError);
+      sendResponse({ 
+        success: false, 
+        error: chrome.runtime.lastError.message 
+      });
+    } else {
+      console.log('Successfully created new ChatGPT tab:', tab.id);
+      if (tab.id) chatGptTabs.add(tab.id);
+      
+      sendResponse({ 
+        success: true, 
+        tabId: tab.id,
+        windowId: tab.windowId,
+        action: 'created_new'
+      });
+    }
+  });
+}
 
 // Handle tab updates to check for job postings and inject content script
 chrome.tabs.onUpdated.addListener((tabId: number, changeInfo: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) => {

@@ -154,3 +154,83 @@ The extension generates comprehensive analysis prompts that include:
 ## License
 
 Same as the main OpenResume project. 
+
+## ChatGPT Navigation Debugging Guide
+
+If the "Copy AI Prompt & Go to ChatGPT" feature isn't working, follow these debugging steps:
+
+### Step 1: Test Extension Permissions
+1. Open the extension popup
+2. Click "🧪 Test Extension Permissions" 
+3. Check the browser console (F12 > Console) for detailed logs
+4. Verify you see: "✅ All tests passed! Extension permissions are working."
+
+### Step 2: Debug ChatGPT Navigation
+1. Open the extension popup
+2. Extract keywords from a job posting
+3. Click "🚀 Copy AI Prompt & Go to ChatGPT"
+4. Open browser console (F12) and check for:
+   - "Starting copyPromptAndNavigate..."
+   - "Prompt copied to clipboard"
+   - "Requesting ChatGPT navigation from background script..."
+   - "Navigation response: {success: true, ...}"
+
+### Step 3: Check Background Script
+1. Go to `chrome://extensions/`
+2. Find "OpenResume Extension"
+3. Click "service worker" to open background script console
+4. Look for messages like:
+   - "Background received message: navigateToChatGPT"
+   - "Handling unified ChatGPT navigation..."
+   - "Successfully created new ChatGPT tab: [tab_id]"
+
+### Common Issues & Solutions
+
+**Issue: Permission errors**
+- Solution: Ensure the extension has "tabs" permission in manifest.json
+- Reload the extension after changes
+
+**Issue: No response from background script**
+- Solution: Check if service worker is active in chrome://extensions/
+- Look for JavaScript errors in background script console
+
+**Issue: ChatGPT tab opens but doesn't focus**
+- Solution: Check if popup closes - this is expected behavior
+- The tab should be created and focused automatically
+
+**Issue: "Failed to navigate to ChatGPT"**
+- Solution: Check browser console for specific error messages
+- Verify internet connection and chatgpt.com accessibility
+
+### Manual Testing Commands
+
+You can test individual functions from the popup console:
+
+```javascript
+// Test basic tab creation
+chrome.tabs.create({url: 'https://chatgpt.com'});
+
+// Test background script communication
+chrome.runtime.sendMessage({action: 'ping'}, console.log);
+
+// Test ChatGPT navigation
+chrome.runtime.sendMessage({action: 'navigateToChatGPT'}, console.log);
+```
+
+### Expected Behavior
+
+1. User clicks "Copy AI Prompt & Go to ChatGPT"
+2. Prompt is copied to clipboard immediately
+3. Extension searches for existing ChatGPT tabs
+4. If found: focuses existing tab and window
+5. If not found: creates new ChatGPT tab
+6. Popup displays success message and closes
+7. ChatGPT tab becomes active and focused
+
+### Troubleshooting Steps
+
+1. **Reload the extension** completely
+2. **Check permissions** in chrome://extensions/
+3. **Try the test button** to verify basic functionality
+4. **Check both popup and background consoles** for errors
+5. **Test with a fresh browser profile** if issues persist 
