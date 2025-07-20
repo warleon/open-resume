@@ -34,6 +34,34 @@ chrome.runtime.onMessage.addListener((request: any, sender: chrome.runtime.Messa
         console.log(`Keywords extracted: ${request.data.extractedKeywords.length} keywords found`);
       }
     });
+  } else if (request.action === 'findChatGPTTab') {
+    // Handle ChatGPT tab finding
+    chrome.tabs.query({ url: "*://chatgpt.com/*" }, (tabs) => {
+      if (tabs.length > 0) {
+        sendResponse({ found: true, tabId: tabs[0].id, windowId: tabs[0].windowId });
+      } else {
+        sendResponse({ found: false });
+      }
+    });
+    return true; // Keep message channel open for async response
+  } else if (request.action === 'createChatGPTTab') {
+    // Handle ChatGPT tab creation
+    chrome.tabs.create({ url: 'https://chatgpt.com', active: true }, (tab) => {
+      sendResponse({ success: true, tabId: tab.id, windowId: tab.windowId });
+    });
+    return true; // Keep message channel open for async response
+  } else if (request.action === 'focusChatGPTTab') {
+    // Handle ChatGPT tab focusing
+    if (request.tabId && request.windowId) {
+      chrome.tabs.update(request.tabId, { active: true }, () => {
+        chrome.windows.update(request.windowId, { focused: true }, () => {
+          sendResponse({ success: true });
+        });
+      });
+    } else {
+      sendResponse({ success: false, error: 'Missing tabId or windowId' });
+    }
+    return true; // Keep message channel open for async response
   }
   
   return true;
@@ -45,6 +73,29 @@ chrome.tabs.onUpdated.addListener((tabId: number, changeInfo: chrome.tabs.TabCha
     // Try to inject content script on all pages
     // The content script will determine if it should run keyword extraction
     injectContentScriptIfNeeded(tabId);
+  }
+});
+
+// Track ChatGPT tabs for better management
+let chatGptTabs = new Set<number>();
+
+chrome.tabs.onCreated.addListener((tab) => {
+  if (tab.url && tab.url.includes('chatgpt.com')) {
+    if (tab.id) chatGptTabs.add(tab.id);
+  }
+});
+
+chrome.tabs.onRemoved.addListener((tabId) => {
+  chatGptTabs.delete(tabId);
+});
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.url) {
+    if (changeInfo.url.includes('chatgpt.com')) {
+      chatGptTabs.add(tabId);
+    } else {
+      chatGptTabs.delete(tabId);
+    }
   }
 });
 
@@ -93,6 +144,12 @@ chrome.action.onClicked.addListener((tab: chrome.tabs.Tab) => {
 chrome.contextMenus.create({
   id: 'extractKeywords',
   title: 'Extract Keywords from Job Posting',
+  contexts: ['page']
+});
+
+chrome.contextMenus.create({
+  id: 'generateAIPrompt',
+  title: 'Generate AI Analysis Prompt',
   contexts: ['page']
 });
 
@@ -147,6 +204,9 @@ chrome.contextMenus.onClicked.addListener((info: chrome.contextMenus.OnClickData
         });
       }
     });
+  } else if (info.menuItemId === 'generateAIPrompt' && tab?.id) {
+    // Open popup to handle AI prompt generation
+    chrome.action.openPopup();
   }
 });
 
@@ -170,6 +230,14 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 // Cleanup on startup
 chrome.runtime.onStartup.addListener(() => {
   console.log('OpenResume extension started');
+  
+  // Clean up ChatGPT tabs tracking
+  chatGptTabs.clear();
+  chrome.tabs.query({ url: "*://chatgpt.com/*" }, (tabs) => {
+    tabs.forEach(tab => {
+      if (tab.id) chatGptTabs.add(tab.id);
+    });
+  });
 });
 
-console.log('OpenResume background script loaded with keyword extraction support'); 
+console.log('OpenResume background script loaded with enhanced ChatGPT integration'); 

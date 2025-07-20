@@ -19,6 +19,7 @@ const Popup: React.FC<PopupProps> = () => {
   const [hasJobContent, setHasJobContent] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [contentScriptLoaded, setContentScriptLoaded] = React.useState<boolean | null>(null);
+  const [chatGptTabId, setChatGptTabId] = React.useState<number | null>(null);
 
   React.useEffect(() => {
     // Get current active tab
@@ -30,6 +31,13 @@ const Popup: React.FC<PopupProps> = () => {
         if (tabs[0].id) {
           checkContentScriptStatus(tabs[0].id);
         }
+      }
+    });
+
+    // Check for existing ChatGPT tabs using background script
+    chrome.runtime.sendMessage({ action: 'findChatGPTTab' }, (response) => {
+      if (response && response.found) {
+        setChatGptTabId(response.tabId);
       }
     });
   }, []);
@@ -97,6 +105,122 @@ const Popup: React.FC<PopupProps> = () => {
     }
   };
 
+  const generateAIPrompt = (): string => {
+    if (keywordResults && keywordResults.extractedText && keywordResults.extractedText.trim()) {
+      // Use extracted text for better analysis
+      const fullExtractedText = keywordResults.extractedText;
+        
+      return `Please analyze the following job posting text and extract the key requirements, skills, technologies, and qualifications mentioned. Provide a summary of:
+
+1. Required technical skills
+2. Required soft skills  
+3. Experience level needed
+4. Key responsibilities
+5. Company culture indicators
+6. Education requirements
+7. Keywords for resume optimization
+
+Please provide the final result as a comma-separated list of keywords ready to be copied.
+
+Job Posting Content:
+${fullExtractedText}`;
+    } else {
+      // Fallback to URL if no extracted text available
+      return `Please analyze the job posting from this URL: ${currentTab?.url}. Extract the key requirements, skills, technologies, and qualifications mentioned. Provide a summary of:
+
+1. Required technical skills
+2. Required soft skills  
+3. Experience level needed
+4. Key responsibilities
+5. Company culture indicators
+6. Education requirements
+7. Keywords for resume optimization
+
+Please provide the final result as a comma-separated list of keywords ready to be copied.`;
+    }
+  };
+
+  const navigateToChatGPT = async (): Promise<number | null> => {
+    // Use background script for better tab management
+    return new Promise((resolve) => {
+      // First, try to find existing ChatGPT tab
+      chrome.runtime.sendMessage({ action: 'findChatGPTTab' }, (response) => {
+        if (response && response.found) {
+          // Focus the existing tab
+          chrome.runtime.sendMessage({
+            action: 'focusChatGPTTab',
+            tabId: response.tabId,
+            windowId: response.windowId
+          }, (focusResponse) => {
+            if (focusResponse && focusResponse.success) {
+              setChatGptTabId(response.tabId);
+              resolve(response.tabId);
+            } else {
+              // Fallback to creating new tab
+              chrome.runtime.sendMessage({ action: 'createChatGPTTab' }, (createResponse) => {
+                if (createResponse && createResponse.success) {
+                  setChatGptTabId(createResponse.tabId);
+                  resolve(createResponse.tabId);
+                } else {
+                  resolve(null);
+                }
+              });
+            }
+          });
+        } else {
+          // Create new ChatGPT tab
+          chrome.runtime.sendMessage({ action: 'createChatGPTTab' }, (createResponse) => {
+            if (createResponse && createResponse.success) {
+              setChatGptTabId(createResponse.tabId);
+              resolve(createResponse.tabId);
+            } else {
+              resolve(null);
+            }
+          });
+        }
+      });
+    });
+  };
+
+  const copyPromptAndNavigate = async () => {
+    try {
+      const prompt = generateAIPrompt();
+      await navigator.clipboard.writeText(prompt);
+      
+      // Show success feedback briefly before navigating
+      setError('✅ Prompt copied! Navigating to ChatGPT...');
+      
+      // Navigate to ChatGPT
+      const tabId = await navigateToChatGPT();
+      
+      if (tabId) {
+        // Close the popup after successful action
+        setTimeout(() => {
+          window.close();
+        }, 500);
+      } else {
+        setError('❌ Failed to navigate to ChatGPT');
+      }
+    } catch (error) {
+      console.error('Failed to copy prompt or navigate:', error);
+      setError('❌ Failed to copy prompt or navigate to ChatGPT');
+    }
+  };
+
+  const copyPromptOnly = async () => {
+    try {
+      const prompt = generateAIPrompt();
+      await navigator.clipboard.writeText(prompt);
+      
+      // Show temporary success feedback
+      setError('✅ Prompt copied to clipboard!');
+      setTimeout(() => setError(null), 2000);
+    } catch (error) {
+      console.error('Failed to copy prompt:', error);
+      setError('❌ Failed to copy prompt to clipboard');
+    }
+  };
+
   const handleExtractKeywords = async () => {
     if (!currentTab?.id) return;
     
@@ -149,6 +273,11 @@ const Popup: React.FC<PopupProps> = () => {
   const copyKeywords = () => {
     if (keywordResults && keywordResults.extractedKeywords.length > 0) {
       navigator.clipboard.writeText(keywordResults.extractedKeywords.join(', '));
+      
+      // Show temporary success feedback
+      const originalError = error;
+      setError('✅ Keywords copied to clipboard!');
+      setTimeout(() => setError(originalError), 2000);
     }
   };
 
@@ -203,11 +332,16 @@ const Popup: React.FC<PopupProps> = () => {
               <span className="job-badge">🎯 Job Posting Detected</span>
             </div>
           )}
+
+          {chatGptTabId && (
+            <div className="chatgpt-indicator">
+              <span className="chatgpt-badge">💬 ChatGPT tab available</span>
+            </div>
+          )}
         </div>
 
         {error && (
-          <div className="error-message">
-            <h4>❌ Error</h4>
+          <div className={`error-message ${error.startsWith('✅') ? 'success-message' : ''}`}>
             <p>{error}</p>
           </div>
         )}
@@ -227,15 +361,15 @@ const Popup: React.FC<PopupProps> = () => {
             {keywordResults.success ? (
               <div className="keywords-success">
                 <h4>✅ Keywords Extracted ({keywordResults.extractedKeywords.length})</h4>
-                <div className="keywords-list">
-                  {keywordResults.extractedKeywords.join(', ')}
-                </div>
                 <button 
-                  className="btn btn-copy"
+                  className="btn btn-copy mb-2"
                   onClick={copyKeywords}
                 >
                   📋 Copy Keywords
                 </button>
+                <div className="keywords-list">
+                  {keywordResults.extractedKeywords.join(', ')}
+                </div>
                 <p className="extraction-method">
                   Method: {keywordResults.extractionMethod}
                 </p>
@@ -249,11 +383,39 @@ const Popup: React.FC<PopupProps> = () => {
           </div>
         )}
 
+        {keywordResults && keywordResults.success && (
+          <div className="ai-prompt-preview">
+            <h4>📝 AI Analysis Prompt Preview:</h4>
+            
+            <div className="ai-prompt-actions">
+              <button 
+                className="btn btn-ai-primary"
+                onClick={copyPromptAndNavigate}
+              >
+                🚀 Copy AI Prompt & Go to ChatGPT
+              </button>
+              
+              <button 
+                className="btn btn-ai-secondary"
+                onClick={copyPromptOnly}
+              >
+                📋 Copy AI Prompt Only
+              </button>
+            </div>
+            
+            <div className="prompt-preview">
+              {generateAIPrompt()}
+            </div>
+          </div>
+        )}
+
         <div className="help-text">
           <p>Use this extension to:</p>
           <ul>
             <li>Extract keywords from job postings</li>
-            <li>Analyze page content for resume building</li>
+            <li>Generate AI analysis prompts</li>
+            <li>Navigate to ChatGPT with smart tab management</li>
+            <li>Optimize your resume with extracted insights</li>
           </ul>
         </div>
       </div>
