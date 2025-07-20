@@ -1,8 +1,11 @@
 # OpenResume
 
-OpenResume is a powerful open-source resume builder and resume parser.
+OpenResume is a powerful open-source resume builder and parser. You can 
+1. Use it to **create** a professional resume 📝
+2. Use it to **parse** a resume from PDF to JSON 🧠
+3. Use it via **browser extension** for data extraction 🌐
 
-The goal of OpenResume is to provide everyone with free access to a modern professional resume design and enable anyone to apply for jobs with confidence.
+The goal of OpenResume is to provide everyone with free access to a modern resume builder that doesn't require sign up and stores data locally in browser.
 
 Official site: [https://open-resume.com](https://open-resume.com)
 
