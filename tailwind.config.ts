@@ -1,7 +1,8 @@
-/** @type {import('tailwindcss').Config} */
-import { config } from 'dotenv';
-config();
-module.exports = {
+import type { Config } from 'tailwindcss'
+
+import { env } from './src/app/lib/env';
+
+export default {
   content: [
     "./src/app/**/*.{ts,tsx,mdx}",
     "./extension/src/**/*.{ts,tsx,html}"
@@ -9,7 +10,7 @@ module.exports = {
   theme: {
     extend: {
       backgroundImage: {
-        dot: `url('${process.env.PUBLIC_URL}/assets/dots.svg')`,
+        dot: `url('${env.PUBLIC_URL}/assets/dots.svg')`,
       },
     },
   },
@@ -20,4 +21,4 @@ module.exports = {
     require("tailwind-scrollbar")({ nocompatible: true }),
     require("@tailwindcss/aspect-ratio"),
   ],
-};
+} satisfies Config;

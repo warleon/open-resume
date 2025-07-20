@@ -1,8 +1,8 @@
-/** @type {import('tailwindcss').Config} */
-const { config } = require('dotenv');
-config();
+import type { Config } from 'tailwindcss'
 
-module.exports = {
+import { env } from '../src/app/lib/env';
+
+export default {
   content: [
     "./extension/src/**/*.{ts,tsx,html}"
   ],
@@ -11,7 +11,7 @@ module.exports = {
       // Fix the dots.svg path for the extension
       // The webpack config copies assets to ./assets/ in the extension dist
       backgroundImage: {
-        dot: `url('${process.env.PUBLIC_URL}/assets/dots.svg')`,
+        dot: `url('${env.PUBLIC_URL}/assets/dots.svg')`,
       },
     },
   },
@@ -22,4 +22,4 @@ module.exports = {
     require("tailwind-scrollbar")({ nocompatible: true }),
     require("@tailwindcss/aspect-ratio"),
   ],
-}; 
+} satisfies Config; 

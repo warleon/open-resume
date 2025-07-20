@@ -18,10 +18,16 @@
     "declarationMap": false,
     "sourceMap": true,
     "baseUrl": "./src",
-    "types": ["chrome"]
+    "types": ["chrome"],
+    "paths": {
+      "@database/*": ["../src/app/database/*"],
+      "@components/*": ["../src/app/components/*"],
+      "@lib/*": ["../src/app/lib/*"]
+    }
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    ".tailwind.config.ts"
   ],
   "exclude": [
     "node_modules",
