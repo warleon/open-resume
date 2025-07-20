@@ -1,14 +1,12 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    "./src/app/**/*.{ts,tsx,mdx}",
     "./extension/src/**/*.{ts,tsx,html}"
   ],
   theme: {
     extend: {
-      backgroundImage: {
-        dot: "url('assets/dots.svg')",
-      },
+      // Remove the dots.svg background image for the extension
+      // Extension doesn't need the same background patterns as the main app
     },
   },
   corePlugins: {
@@ -18,4 +16,4 @@ module.exports = {
     require("tailwind-scrollbar")({ nocompatible: true }),
     require("@tailwindcss/aspect-ratio"),
   ],
-};
+}; 

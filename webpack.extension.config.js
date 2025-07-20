@@ -42,7 +42,7 @@ module.exports = (env, argv) => {
               options: {
                 postcssOptions: {
                   plugins: [
-                    require('tailwindcss'),
+                    require('tailwindcss')('./extension/tailwind.config.js'),
                     require('autoprefixer'),
                   ],
                 },
@@ -71,6 +71,7 @@ module.exports = (env, argv) => {
       alias: {
         '@': path.resolve(__dirname, 'src/app'),
         'public': path.resolve(__dirname, 'public'),
+        'assets': path.resolve(__dirname, 'extension/dist/assets'),
       },
     },
     plugins: [
@@ -86,6 +87,13 @@ module.exports = (env, argv) => {
           {
             from: 'extension/src/content/content.css',
             to: 'content.css',
+          },
+          {
+            from: 'public/assets',
+            to: 'assets',
+            globOptions: {
+              ignore: ['**/*.md'],
+            },
           },
         ],
       }),

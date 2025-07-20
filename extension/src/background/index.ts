@@ -15,6 +15,8 @@ chrome.runtime.onInstalled.addListener((details: chrome.runtime.InstalledDetails
 
 // Handle messages from content scripts and popup
 chrome.runtime.onMessage.addListener((request: any, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) => {
+  console.log('Background received message:', request.action);
+  
   if (request.action === 'keywordsExtracted') {
     // Handle keyword extraction results
     console.log('Keywords extracted:', request.data);
@@ -36,29 +38,98 @@ chrome.runtime.onMessage.addListener((request: any, sender: chrome.runtime.Messa
     });
   } else if (request.action === 'findChatGPTTab') {
     // Handle ChatGPT tab finding
+    console.log('Searching for existing ChatGPT tabs...');
+    
     chrome.tabs.query({ url: "*://chatgpt.com/*" }, (tabs) => {
-      if (tabs.length > 0) {
-        sendResponse({ found: true, tabId: tabs[0].id, windowId: tabs[0].windowId });
+      if (chrome.runtime.lastError) {
+        console.error('Error finding ChatGPT tabs:', chrome.runtime.lastError);
+        sendResponse({ found: false, error: chrome.runtime.lastError.message });
       } else {
-        sendResponse({ found: false });
+        console.log('Found ChatGPT tabs:', tabs.length);
+        
+        if (tabs.length > 0) {
+          const tab = tabs[0];
+          console.log('Using ChatGPT tab:', tab.id, 'in window:', tab.windowId);
+          sendResponse({ 
+            found: true, 
+            tabId: tab.id, 
+            windowId: tab.windowId,
+            url: tab.url 
+          });
+        } else {
+          console.log('No ChatGPT tabs found');
+          sendResponse({ found: false });
+        }
       }
     });
     return true; // Keep message channel open for async response
   } else if (request.action === 'createChatGPTTab') {
     // Handle ChatGPT tab creation
-    chrome.tabs.create({ url: 'https://chatgpt.com', active: true }, (tab) => {
-      sendResponse({ success: true, tabId: tab.id, windowId: tab.windowId });
+    console.log('Creating new ChatGPT tab...');
+    
+    chrome.tabs.create({ 
+      url: 'https://chatgpt.com', 
+      active: true 
+    }, (tab) => {
+      if (chrome.runtime.lastError) {
+        console.error('Error creating ChatGPT tab:', chrome.runtime.lastError);
+        sendResponse({ 
+          success: false, 
+          error: chrome.runtime.lastError.message 
+        });
+      } else {
+        console.log('Created ChatGPT tab:', tab.id, 'in window:', tab.windowId);
+        if (tab.id) chatGptTabs.add(tab.id);
+        
+        sendResponse({ 
+          success: true, 
+          tabId: tab.id, 
+          windowId: tab.windowId,
+          url: tab.url 
+        });
+      }
     });
     return true; // Keep message channel open for async response
   } else if (request.action === 'focusChatGPTTab') {
     // Handle ChatGPT tab focusing
+    console.log('Focusing ChatGPT tab:', request.tabId, 'in window:', request.windowId);
+    
     if (request.tabId && request.windowId) {
-      chrome.tabs.update(request.tabId, { active: true }, () => {
-        chrome.windows.update(request.windowId, { focused: true }, () => {
-          sendResponse({ success: true });
-        });
+      // First, check if the tab still exists
+      chrome.tabs.get(request.tabId, (tab) => {
+        if (chrome.runtime.lastError) {
+          console.error('Tab no longer exists:', chrome.runtime.lastError);
+          sendResponse({ 
+            success: false, 
+            error: 'Tab no longer exists' 
+          });
+        } else {
+          // Tab exists, try to focus it
+          chrome.tabs.update(request.tabId, { active: true }, (updatedTab) => {
+            if (chrome.runtime.lastError) {
+              console.error('Error updating tab:', chrome.runtime.lastError);
+              sendResponse({ 
+                success: false, 
+                error: chrome.runtime.lastError.message 
+              });
+            } else {
+              // Also bring the window to front
+              chrome.windows.update(request.windowId, { focused: true }, (window) => {
+                if (chrome.runtime.lastError) {
+                  console.warn('Warning: Could not focus window:', chrome.runtime.lastError);
+                  // Still consider it successful if tab was activated
+                  sendResponse({ success: true });
+                } else {
+                  console.log('Successfully focused ChatGPT tab and window');
+                  sendResponse({ success: true });
+                }
+              });
+            }
+          });
+        }
       });
     } else {
+      console.error('Missing tabId or windowId for focus action');
       sendResponse({ success: false, error: 'Missing tabId or windowId' });
     }
     return true; // Keep message channel open for async response

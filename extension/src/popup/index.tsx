@@ -141,69 +141,107 @@ Please provide the final result as a comma-separated list of keywords ready to b
   };
 
   const navigateToChatGPT = async (): Promise<number | null> => {
-    // Use background script for better tab management
-    return new Promise((resolve) => {
+    try {
+      console.log('Starting ChatGPT navigation...');
+      
       // First, try to find existing ChatGPT tab
-      chrome.runtime.sendMessage({ action: 'findChatGPTTab' }, (response) => {
-        if (response && response.found) {
-          // Focus the existing tab
+      const findResponse = await new Promise<any>((resolve, reject) => {
+        chrome.runtime.sendMessage({ action: 'findChatGPTTab' }, (response) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else {
+            resolve(response);
+          }
+        });
+      });
+
+      console.log('Find ChatGPT tab response:', findResponse);
+
+      if (findResponse && findResponse.found) {
+        // Try to focus the existing tab
+        console.log('Attempting to focus existing ChatGPT tab:', findResponse.tabId);
+        
+        const focusResponse = await new Promise<any>((resolve, reject) => {
           chrome.runtime.sendMessage({
             action: 'focusChatGPTTab',
-            tabId: response.tabId,
-            windowId: response.windowId
-          }, (focusResponse) => {
-            if (focusResponse && focusResponse.success) {
-              setChatGptTabId(response.tabId);
-              resolve(response.tabId);
+            tabId: findResponse.tabId,
+            windowId: findResponse.windowId
+          }, (response) => {
+            if (chrome.runtime.lastError) {
+              reject(new Error(chrome.runtime.lastError.message));
             } else {
-              // Fallback to creating new tab
-              chrome.runtime.sendMessage({ action: 'createChatGPTTab' }, (createResponse) => {
-                if (createResponse && createResponse.success) {
-                  setChatGptTabId(createResponse.tabId);
-                  resolve(createResponse.tabId);
-                } else {
-                  resolve(null);
-                }
-              });
+              resolve(response);
             }
           });
+        });
+
+        console.log('Focus response:', focusResponse);
+
+        if (focusResponse && focusResponse.success) {
+          setChatGptTabId(findResponse.tabId);
+          return findResponse.tabId;
         } else {
-          // Create new ChatGPT tab
-          chrome.runtime.sendMessage({ action: 'createChatGPTTab' }, (createResponse) => {
-            if (createResponse && createResponse.success) {
-              setChatGptTabId(createResponse.tabId);
-              resolve(createResponse.tabId);
-            } else {
-              resolve(null);
-            }
-          });
+          console.log('Failed to focus existing tab, creating new one...');
         }
+      }
+
+      // Create new ChatGPT tab (either no existing tab found or failed to focus)
+      console.log('Creating new ChatGPT tab...');
+      
+      const createResponse = await new Promise<any>((resolve, reject) => {
+        chrome.runtime.sendMessage({ action: 'createChatGPTTab' }, (response) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else {
+            resolve(response);
+          }
+        });
       });
-    });
+
+      console.log('Create ChatGPT tab response:', createResponse);
+
+      if (createResponse && createResponse.success) {
+        setChatGptTabId(createResponse.tabId);
+        return createResponse.tabId;
+      } else {
+        throw new Error('Failed to create ChatGPT tab');
+      }
+    } catch (error) {
+      console.error('Error in navigateToChatGPT:', error);
+      return null;
+    }
   };
 
   const copyPromptAndNavigate = async () => {
     try {
+      console.log('Starting copyPromptAndNavigate...');
+      
       const prompt = generateAIPrompt();
       await navigator.clipboard.writeText(prompt);
+      console.log('Prompt copied to clipboard');
       
       // Show success feedback briefly before navigating
       setError('✅ Prompt copied! Navigating to ChatGPT...');
       
       // Navigate to ChatGPT
       const tabId = await navigateToChatGPT();
+      console.log('Navigation result, tabId:', tabId);
       
       if (tabId) {
+        console.log('Successfully navigated to ChatGPT, closing popup...');
+        setError('✅ Success! Opening ChatGPT...');
+        
         // Close the popup after successful action
         setTimeout(() => {
           window.close();
-        }, 500);
+        }, 800);
       } else {
-        setError('❌ Failed to navigate to ChatGPT');
+        console.error('Failed to get tabId from navigation');
+        setError('❌ Failed to navigate to ChatGPT. Please check permissions.');
       }
     } catch (error) {
       console.error('Failed to copy prompt or navigate:', error);
-      setError('❌ Failed to copy prompt or navigate to ChatGPT');
+      setError(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`);
     }
   };
 
@@ -328,13 +366,13 @@ Please provide the final result as a comma-separated list of keywords ready to b
           )}
           
           {hasJobContent && (
-            <div className="job-indicator">
+            <div className="job-indicator mt-2">
               <span className="job-badge">🎯 Job Posting Detected</span>
             </div>
           )}
 
           {chatGptTabId && (
-            <div className="chatgpt-indicator">
+            <div className="chatgpt-indicator mt-2">
               <span className="chatgpt-badge">💬 ChatGPT tab available</span>
             </div>
           )}
@@ -346,9 +384,9 @@ Please provide the final result as a comma-separated list of keywords ready to b
           </div>
         )}
 
-        <div className="actions">
+        <div className="actions space-y-3">
           <button 
-            className="btn btn-primary"
+            className="btn btn-primary w-full"
             onClick={handleExtractKeywords}
             disabled={isExtractingKeywords}
           >
@@ -387,16 +425,16 @@ Please provide the final result as a comma-separated list of keywords ready to b
           <div className="ai-prompt-preview">
             <h4>📝 AI Analysis Prompt Preview:</h4>
             
-            <div className="ai-prompt-actions">
+            <div className="ai-prompt-actions flex gap-2 mb-3">
               <button 
-                className="btn btn-ai-primary"
+                className="btn btn-ai-primary flex-1"
                 onClick={copyPromptAndNavigate}
               >
                 🚀 Copy AI Prompt & Go to ChatGPT
               </button>
               
               <button 
-                className="btn btn-ai-secondary"
+                className="btn btn-ai-secondary flex-1"
                 onClick={copyPromptOnly}
               >
                 📋 Copy AI Prompt Only
@@ -409,9 +447,9 @@ Please provide the final result as a comma-separated list of keywords ready to b
           </div>
         )}
 
-        <div className="help-text">
-          <p>Use this extension to:</p>
-          <ul>
+        <div className="help-text space-y-2">
+          <p className="mb-2">Use this extension to:</p>
+          <ul className="space-y-1">
             <li>Extract keywords from job postings</li>
             <li>Generate AI analysis prompts</li>
             <li>Navigate to ChatGPT with smart tab management</li>

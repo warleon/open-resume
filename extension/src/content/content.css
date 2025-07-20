@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* OpenResume Extension Content Script Styles */
 
 /* Notification overlay for resume detection */
