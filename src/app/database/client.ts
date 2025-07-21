@@ -1,14 +1,14 @@
-"use server";
-
 import { drizzle } from 'drizzle-orm/libsql';
-import * as schema from 'database/schemas/keywords';
+import * as schema from 'database/schemas';
 
+import { env } from "@lib/env"
 
+console.log("DEBUG ANTHONY ENV VARS:", JSON.stringify(env, null, 2))
 // Create drizzle instance
 export const db = drizzle({
   connection: {
-    url: process.env.DATABASE_PATH!,
-    authToken: process.env.DATABASE_AUTH_TOKEN!,
+    url: env.TURSO_CONNECTION_URL,
+    authToken: env.TURSO_AUTH_TOKEN,
   }
 });
 

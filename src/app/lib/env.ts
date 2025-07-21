@@ -8,12 +8,12 @@ config({
 });
 
 const envSchema = z.object({
-  PUBLIC_URL: z.url("PUBLIC_URL is required"),
-  TURSO_AUTH_TOKEN: z.jwt("TURSO_AUTH_TOKEN is required"),
-  TURSO_CONNECTION_URL: z.url("TURSO_CONNECTION_URL is required"),
+    PUBLIC_URL: z.url("PUBLIC_URL is required"),
+    TURSO_AUTH_TOKEN: z.jwt("TURSO_AUTH_TOKEN is required"),
+    TURSO_CONNECTION_URL: z.url("TURSO_CONNECTION_URL is required"),
 });
 
-const {success,data,error} = envSchema.safeParse(
+const { success, data, error } = envSchema.safeParse(
     {
         PUBLIC_URL: process.env.PUBLIC_URL,
         TURSO_AUTH_TOKEN: process.env.TURSO_AUTH_TOKEN,
@@ -21,7 +21,7 @@ const {success,data,error} = envSchema.safeParse(
     }
 );
 
-if(!success){
+if (!success) {
     console.error(error);
     throw new Error(`Invalid environment variables: ${error.message}`);
 }

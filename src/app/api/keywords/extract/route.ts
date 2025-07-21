@@ -1,11 +1,26 @@
 "use server";
 import { db } from 'database/client';
-import { job_title as job_titleTable } from 'database/schemas';
+import { job_title as job_titleTable, keywords as keywordsTable } from 'database/schemas';
 import { unstable_cache } from 'next/cache';
 import { NextRequest, NextResponse } from 'next/server';
 import AhoCorasick from 'ahocorasick';
-import { JOB_TITLE_TAG, getCachedKeywordMatcher } from './constants';
+import { JOB_TITLE_TAG, KEYWORDS_TAG } from './constants';
 
+// Cached function to get all keywords and build AhoCorasick matcher
+export const getCachedKeywordMatcher = unstable_cache(
+  async () => {
+    const allKeywords = await db.select().from(keywordsTable);
+    const keywordStrings = allKeywords.map(k => k.keyword.toLowerCase());
+
+    const ac = new AhoCorasick(keywordStrings);
+    return { matcher: ac, keywords: keywordStrings };
+  },
+  ['keyword-matcher'],
+  {
+    tags: [KEYWORDS_TAG],
+    revalidate: 3600 * 24, // Cache for 1 day
+  }
+);
 export const getCachedJobTitleMatcher = unstable_cache(
   async () => {
     const allJobTitles = await db.select().from(job_titleTable);
