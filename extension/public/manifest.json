@@ -3,17 +3,8 @@
   "name": "OpenResume Extension",
   "version": "1.0.0",
   "description": "A browser extension for OpenResume - Create professional resumes directly in your browser",
-  "permissions": [
-    "storage",
-    "activeTab",
-    "tabs",
-    "scripting",
-    "contextMenus"
-  ],
-  "host_permissions": [
-    "https://*/*",
-    "http://*/*"
-  ],
+  "permissions": ["storage", "activeTab", "tabs", "scripting", "contextMenus"],
+  "host_permissions": ["https://*/*", "http://*/*"],
   "background": {
     "service_worker": "background.js"
   },
@@ -38,5 +29,8 @@
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self';"
+  },
+  "externally_connectable": {
+    "matches": ["https://*/*", "http://*/*"]
   }
-} 
+}
