@@ -2,10 +2,8 @@ import { z } from "zod";
 
 import { config } from "dotenv";
 
-const environment_variables = {}
 config({
     debug: true,
-    processEnv: environment_variables,
     encoding: "utf-8",
 });
 
@@ -15,7 +13,13 @@ const envSchema = z.object({
   TURSO_CONNECTION_URL: z.url("TURSO_CONNECTION_URL is required"),
 });
 
-const {success,data,error} = envSchema.safeParse(environment_variables);
+const {success,data,error} = envSchema.safeParse(
+    {
+        PUBLIC_URL: process.env.PUBLIC_URL,
+        TURSO_AUTH_TOKEN: process.env.TURSO_AUTH_TOKEN,
+        TURSO_CONNECTION_URL: process.env.TURSO_CONNECTION_URL,
+    }
+);
 
 if(!success){
     console.error(error);

@@ -4,6 +4,8 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const TsconfigPathsPlugin = require("tsconfig-paths-webpack-plugin");
 const NodePolyfillPlugin = require("node-polyfill-webpack-plugin");
+const Dotenv = require('dotenv-webpack');
+
 
 module.exports = (env, argv) => {
   const isProduction = argv.mode === "production";
@@ -126,6 +128,7 @@ module.exports = (env, argv) => {
       new NodePolyfillPlugin({
         additionalAliases: ["process","path","crypto","os","tty"],
       }),
+      new Dotenv(),
 
       ...(isProduction
         ? [
