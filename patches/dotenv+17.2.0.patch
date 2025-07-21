@@ -1,0 +1,13 @@
+diff --git a/node_modules/dotenv/lib/main.js b/node_modules/dotenv/lib/main.js
+index 1234567..abcdefg 100644
+--- a/node_modules/dotenv/lib/main.js
+--- b/node_modules/dotenv/lib/main.js
+@@ -34,7 +34,7 @@ function parseBoolean (value) {
+ }
+ 
+ function supportsAnsi () {
+-  return process.stdout.isTTY // && process.env.TERM !== 'dumb'
++  return process.stdout && process.stdout.isTTY // && process.env.TERM !== 'dumb'
+ }
+ 
+ function dim (text) {

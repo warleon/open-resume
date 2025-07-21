@@ -1,7 +1,12 @@
 import { z } from "zod";
+
 import { config } from "dotenv";
+
+const environment_variables = {}
 config({
     debug: true,
+    processEnv: environment_variables,
+    encoding: "utf-8",
 });
 
 const envSchema = z.object({
@@ -10,4 +15,10 @@ const envSchema = z.object({
   TURSO_CONNECTION_URL: z.url("TURSO_CONNECTION_URL is required"),
 });
 
-export const env = envSchema.parse(process.env);
+const {success,data,error} = envSchema.safeParse(environment_variables);
+
+if(!success){
+    console.error(error);
+    throw new Error(`Invalid environment variables: ${error.message}`);
+}
+export const env = data;
