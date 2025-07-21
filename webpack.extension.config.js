@@ -2,6 +2,7 @@ const path = require('path');
 const CopyPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 
 module.exports = (env, argv) => {
   const isProduction = argv.mode === 'production';
@@ -69,10 +70,24 @@ module.exports = (env, argv) => {
     resolve: {
       extensions: ['.tsx', '.ts', '.js', '.jsx'],
       alias: {
-        '@': path.resolve(__dirname, 'src/app'),
+        //'@': path.resolve(__dirname, 'src/app'),
+        //'@lib': path.resolve(__dirname, 'src/app/lib'),
+        //'@database': path.resolve(__dirname, 'src/app/database'),
+        //'@components': path.resolve(__dirname, 'src/app/components'),
         'public': path.resolve(__dirname, 'public'),
         'assets': path.resolve(__dirname, 'extension/dist/assets'),
       },
+      fallback: {
+        'crypto':false,
+        'os':false,
+        'path':false,
+      },
+      plugins: [
+        new TsconfigPathsPlugin({
+          extensions: ['.js', '.jsx', '.json', '.ts', '.tsx'],
+          configFile: path.resolve(__dirname, 'extension/tsconfig.json'),
+        }),
+      ],
     },
     plugins: [
       new CopyPlugin({

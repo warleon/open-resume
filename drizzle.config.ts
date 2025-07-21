@@ -2,7 +2,7 @@ import type { Config } from 'drizzle-kit';
 import { env } from '@lib/env';
 
 export default {
-  schema: './src/app/database/schema.ts',
+  schema: './src/app/database/schemas/index.ts',
   out: './database/migrations',
   dialect: 'turso',
   dbCredentials: {

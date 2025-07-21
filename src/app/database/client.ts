@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/libsql';
-import * as schema from '@database/schema';
+import * as schema from 'database/schemas/keywords';
 
 
 // Create drizzle instance

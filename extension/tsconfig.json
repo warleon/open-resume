@@ -20,9 +20,10 @@
     "baseUrl": "./src",
     "types": ["chrome"],
     "paths": {
-      "@database/*": ["../src/app/database/*"],
-      "@components/*": ["../src/app/components/*"],
-      "@lib/*": ["../src/app/lib/*"]
+      "@database/*": ["../../src/app/database/*"],
+      "@components/*": ["../../src/app/components/*"],
+      "@lib/*": ["../../src/app/lib/*"],
+      "@/*": ["../../src/app/*"]
     }
   },
   "include": [

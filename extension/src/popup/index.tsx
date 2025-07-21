@@ -161,8 +161,6 @@ Please provide the final result as a comma-separated list of keywords ready to b
         if (!injected) {
           return;
         }
-        // Wait a bit for the script to initialize
-        await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
       // Send message to content script to extract keywords
@@ -291,7 +289,7 @@ Please provide the final result as a comma-separated list of keywords ready to b
                   {keywordResults.extractedKeywords.join(', ')}
                 </div>
                 <p className="extraction-method">
-                  Method: {keywordResults.extractionMethod}
+                  Method: {keywordResults.extractionMethod === 'api-based' ? '🔗 API-based extraction' : '📝 Simple fallback extraction'}
                 </p>
               </div>
             ) : (

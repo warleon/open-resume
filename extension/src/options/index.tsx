@@ -2,6 +2,8 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import './options.css';
 
+import { env } from '@lib/env';
+
 interface OptionsProps {}
 
 const Options: React.FC<OptionsProps> = () => {
@@ -9,7 +11,7 @@ const Options: React.FC<OptionsProps> = () => {
     autoExtract: true,
     showNotifications: true,
     defaultTemplate: 'modern',
-    apiEndpoint: 'https://www.open-resume.com'
+    apiEndpoint: env.PUBLIC_URL
   });
   
   const [savedMessage, setSavedMessage] = React.useState('');
@@ -33,7 +35,7 @@ const Options: React.FC<OptionsProps> = () => {
       autoExtract: true,
       showNotifications: true,
       defaultTemplate: 'modern',
-      apiEndpoint: 'https://www.open-resume.com'
+      apiEndpoint: env.PUBLIC_URL
     };
     setSettings(defaultSettings);
     chrome.storage.sync.set(defaultSettings, () => {
@@ -115,7 +117,7 @@ const Options: React.FC<OptionsProps> = () => {
               value={settings.apiEndpoint}
               onChange={(e) => setSettings({...settings, apiEndpoint: e.target.value})}
               className="setting-input"
-              placeholder="https://www.open-resume.com"
+              placeholder={env.PUBLIC_URL}
             />
             <p className="setting-description">
               The URL of the OpenResume application
