@@ -1,17 +1,9 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import "./popup.css";
-import { EXTRACT_KEYWORDS_ACTION } from "background/actions";
+import { extractor, KeywordExtractionResult } from "@utils/keywordExtractor";
 
 interface PopupProps {}
-
-interface KeywordExtractionResult {
-  extractedText: string;
-  extractedKeywords: string[];
-  extractionMethod: string;
-  success: boolean;
-  error?: string;
-}
 
 const Popup: React.FC<PopupProps> = () => {
   const [currentTab, setCurrentTab] = React.useState<chrome.tabs.Tab | null>(
@@ -47,10 +39,10 @@ const Popup: React.FC<PopupProps> = () => {
         if (chrome.runtime.lastError) {
           // Content script not loaded, try to inject it
           setContentScriptLoaded(false);
-          console.log("Content script not loaded, attempting injection...");
+          console.error("Content script not loaded, attempting injection...");
         } else if (response && response.status === "loaded") {
           setContentScriptLoaded(true);
-          console.log("Content script is loaded");
+          console.error("Content script is loaded");
 
           // Check for job content
           chrome.tabs.sendMessage(
@@ -131,26 +123,9 @@ Please provide the final result as a comma-separated list of keywords ready to b
     setError(null);
 
     try {
-      // Send message to content script to extract keywords
-      const response = await new Promise((resolve, reject) => {
-        chrome.tabs.sendMessage(
-          currentTab.id!,
-          {
-            action: EXTRACT_KEYWORDS_ACTION,
-            url: currentTab.url,
-          },
-          (response) => {
-            if (chrome.runtime.lastError) {
-              reject(new Error(chrome.runtime.lastError.message));
-            } else {
-              resolve(response);
-            }
-          }
-        );
-      });
+      const data = await extractor.extractKeywords(currentTab.url);
 
-      console.log("Extracted keywords:", response);
-      setKeywordResults(response as KeywordExtractionResult);
+      setKeywordResults(data);
     } catch (error) {
       console.error("Error extracting keywords:", error);
       setKeywordResults({

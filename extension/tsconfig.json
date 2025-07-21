@@ -23,7 +23,8 @@
       "@database/*": ["../../src/app/database/*"],
       "@components/*": ["../../src/app/components/*"],
       "@lib/*": ["../../src/app/lib/*"],
-      "@/*": ["../../src/app/*"]
+      "@/*": ["../../src/app/*"],
+      "@utils/*": ["./utils/*"]
     }
   },
   "include": [

@@ -14,12 +14,14 @@ A browser extension that integrates with OpenResume to help extract resume data 
 ## Key Improvements
 
 ### Enhanced AI Analysis
+
 - Generate detailed analysis prompts that include actual job posting content
 - Smart ChatGPT tab management (reuses existing tabs or creates new ones)
 - One-click copy prompt and navigate workflow
 - Fallback options for manual prompt copying
 
 ### Better Job Site Support
+
 - Works seamlessly on LinkedIn, Indeed, Glassdoor, and other job sites
 - No CORS or iframe limitations like the web app
 - Direct access to page content for better keyword extraction
@@ -34,16 +36,19 @@ A browser extension that integrates with OpenResume to help extract resume data 
 ### Setup
 
 1. Install dependencies:
+
 ```bash
 npm install
 ```
 
 2. Build the extension:
+
 ```bash
 npm run extension:build
 ```
 
 3. For development with hot reload:
+
 ```bash
 npm run extension:dev
 ```
@@ -90,6 +95,7 @@ The built extension will be in the `extension/dist` folder, ready for packaging 
 ## Usage
 
 ### Basic Workflow
+
 1. **Install Extension**: Load the extension in Chrome
 2. **Navigate to Job Posting**: Go to any job site (LinkedIn, Indeed, etc.)
 3. **Extract Keywords**: Click extension icon and use "Extract Keywords"
@@ -97,13 +103,16 @@ The built extension will be in the `extension/dist` folder, ready for packaging 
 5. **Analyze with AI**: Paste prompt in ChatGPT for detailed analysis
 
 ### Available Actions
+
 - **Extract Keywords**: Automatically extract relevant keywords from job postings
 - **Copy AI Prompt & Go to ChatGPT**: Generate enhanced prompt and navigate to ChatGPT
 - **Copy AI Prompt Only**: Copy the enhanced prompt to clipboard
 - **Copy Keywords**: Copy extracted keywords as comma-separated list
 
 ### Context Menu Integration
+
 Right-click on any page and select:
+
 - "Extract Keywords from Job Posting"
 - "Generate AI Analysis Prompt"
 
@@ -130,13 +139,16 @@ The extension works best on:
 ## AI Integration
 
 ### Enhanced Prompts
+
 The extension generates comprehensive analysis prompts that include:
+
 - Actual job posting content (not just URLs)
 - Structured analysis requests for technical and soft skills
 - Industry-specific keyword optimization suggestions
 - Experience level and education requirements extraction
 
 ### Smart ChatGPT Management
+
 - Automatically detects existing ChatGPT tabs
 - Reuses existing tabs when possible
 - Creates new tabs when needed
@@ -153,19 +165,21 @@ The extension generates comprehensive analysis prompts that include:
 
 ## License
 
-Same as the main OpenResume project. 
+Same as the main OpenResume project.
 
 ## ChatGPT Navigation Debugging Guide
 
 If the "Copy AI Prompt & Go to ChatGPT" feature isn't working, follow these debugging steps:
 
 ### Step 1: Test Extension Permissions
+
 1. Open the extension popup
-2. Click "🧪 Test Extension Permissions" 
+2. Click "🧪 Test Extension Permissions"
 3. Check the browser console (F12 > Console) for detailed logs
 4. Verify you see: "✅ All tests passed! Extension permissions are working."
 
 ### Step 2: Debug ChatGPT Navigation
+
 1. Open the extension popup
 2. Extract keywords from a job posting
 3. Click "🚀 Copy AI Prompt & Go to ChatGPT"
@@ -176,6 +190,7 @@ If the "Copy AI Prompt & Go to ChatGPT" feature isn't working, follow these debu
    - "Navigation response: {success: true, ...}"
 
 ### Step 3: Check Background Script
+
 1. Go to `chrome://extensions/`
 2. Find "OpenResume Extension"
 3. Click "service worker" to open background script console
@@ -187,18 +202,22 @@ If the "Copy AI Prompt & Go to ChatGPT" feature isn't working, follow these debu
 ### Common Issues & Solutions
 
 **Issue: Permission errors**
+
 - Solution: Ensure the extension has "tabs" permission in manifest.json
 - Reload the extension after changes
 
 **Issue: No response from background script**
+
 - Solution: Check if service worker is active in chrome://extensions/
 - Look for JavaScript errors in background script console
 
 **Issue: ChatGPT tab opens but doesn't focus**
+
 - Solution: Check if popup closes - this is expected behavior
 - The tab should be created and focused automatically
 
 **Issue: "Failed to navigate to ChatGPT"**
+
 - Solution: Check browser console for specific error messages
 - Verify internet connection and chatgpt.com accessibility
 
@@ -208,13 +227,13 @@ You can test individual functions from the popup console:
 
 ```javascript
 // Test basic tab creation
-chrome.tabs.create({url: 'https://chatgpt.com'});
+chrome.tabs.create({ url: "https://chatgpt.com" });
 
 // Test background script communication
-chrome.runtime.sendMessage({action: 'ping'}, console.log);
+chrome.runtime.sendMessage({ action: "ping" }, console.error);
 
 // Test ChatGPT navigation
-chrome.runtime.sendMessage({action: 'navigateToChatGPT'}, console.log);
+chrome.runtime.sendMessage({ action: "navigateToChatGPT" }, console.error);
 ```
 
 ### Expected Behavior
@@ -233,4 +252,4 @@ chrome.runtime.sendMessage({action: 'navigateToChatGPT'}, console.log);
 2. **Check permissions** in chrome://extensions/
 3. **Try the test button** to verify basic functionality
 4. **Check both popup and background consoles** for errors
-5. **Test with a fresh browser profile** if issues persist 
+5. **Test with a fresh browser profile** if issues persist

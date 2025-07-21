@@ -1,3 +1,5 @@
+"use server";
+
 import { drizzle } from 'drizzle-orm/libsql';
 import * as schema from 'database/schemas/keywords';
 

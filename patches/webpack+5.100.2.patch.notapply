@@ -1,0 +1,28 @@
+diff --git a/node_modules/webpack/lib/dependencies/ImportMetaContextDependencyParserPlugin.js b/node_modules/webpack/lib/dependencies/ImportMetaContextDependencyParserPlugin.js
+index 6b5c2bb..aaa425c 100644
+--- a/node_modules/webpack/lib/dependencies/ImportMetaContextDependencyParserPlugin.js
++++ b/node_modules/webpack/lib/dependencies/ImportMetaContextDependencyParserPlugin.js
+@@ -82,7 +82,8 @@ module.exports = class ImportMetaContextDependencyParserPlugin {
+ 				if (!requestExpr.isString()) return;
+ 				const request = /** @type {string} */ (requestExpr.string);
+ 				const errors = [];
+-				let regExp = /^\.\/.*$/;
++				//let regExp = /^\.\/.*$/;
++				let regExp = /^\.\/(?!.*LICENSE).*$/;
+ 				let recursive = true;
+ 				/** @type {ContextModuleOptions["mode"]} */
+ 				let mode = "sync";
+diff --git a/node_modules/webpack/lib/dependencies/RequireContextDependencyParserPlugin.js b/node_modules/webpack/lib/dependencies/RequireContextDependencyParserPlugin.js
+index 9f794ba..163d02b 100644
+--- a/node_modules/webpack/lib/dependencies/RequireContextDependencyParserPlugin.js
++++ b/node_modules/webpack/lib/dependencies/RequireContextDependencyParserPlugin.js
+@@ -21,7 +21,8 @@ module.exports = class RequireContextDependencyParserPlugin {
+ 	 */
+ 	apply(parser) {
+ 		parser.hooks.call.for("require.context").tap(PLUGIN_NAME, expr => {
+-			let regExp = /^\.\/.*$/;
++			//let regExp = /^\.\/.*$/;
++			let regExp = /^\.\/(?!.*LICENSE).*$/;
+ 			let recursive = true;
+ 			/** @type {ContextMode} */
+ 			let mode = "sync";
