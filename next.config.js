@@ -10,9 +10,7 @@ const nextConfig = {
   // https://github.com/mozilla/pdf.js/issues/16214
   output: "standalone",
 
-  experimental:{
-      serverComponentsExternalPackages: ["drizzle-orm", "@libsql/client"]
-  },
+  serverExternalPackages: ["drizzle-orm", "@libsql/client"],
   webpack: (config) => {
     // Setting resolve.alias to false tells webpack to ignore a module
     // https://webpack.js.org/configuration/resolve/#resolvealias
@@ -46,7 +44,7 @@ const nextConfig = {
     return config;
   },
   pageExtensions: ["ts", "tsx", "js", "jsx", "md", "mdx"],
-  transpilePackages: ["@libsql/client", "@libsql/core", "@libsql/hrana-client"],
+  //transpilePackages: ["@libsql/client", "@libsql/core", "@libsql/hrana-client"],
 };
 const withMDX = createMDXPlugin({
   extension: /\.mdx?$/,
