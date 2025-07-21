@@ -1,5 +1,8 @@
 // Background service worker for OpenResume extension
 import { env } from "@lib/env";
+import { EXTRACT_KEYWORDS_ACTION, KEYWORDS_EXTRACTED_ACTION, PING_ACTION } from "./actions";
+import { onPing } from "./onPing";
+import { onKeywordsExtracted } from "./onKeywordsExtracted";
 
 // Handle extension installation
 chrome.runtime.onInstalled.addListener(
@@ -20,25 +23,14 @@ const onMessageHandler = (
   sender: chrome.runtime.MessageSender,
   sendResponse: (response?: any) => void
 ) => {
-  console.log("Background received message:", request.action);
-  if (request.action === "ping") {
-    sendResponse({ status: "pong", timestamp: Date.now() });
-    return true;
-  } else if (request.action === "keywordsExtracted") {
-    // Handle keyword extraction results
-    console.log("Keywords extracted:", request.data);
-
-    // Store the latest extraction results
-    chrome.storage.local.set({
-      lastKeywordExtraction: {
-        url: sender.tab?.url,
-        timestamp: Date.now(),
-        data: request.data,
-      },
-    });
+  switch (request.action) {
+    case PING_ACTION:
+      return onPing(request, sender, sendResponse);
+    case KEYWORDS_EXTRACTED_ACTION:
+      return onKeywordsExtracted(request, sender, sendResponse);
+    default:
+      return false;
   }
-
-  return true;
 };
 
 // Handle messages from content scripts and popup
@@ -64,7 +56,7 @@ chrome.tabs.onUpdated.addListener(
 async function injectContentScriptIfNeeded(tabId: number) {
   try {
     // Check if content script is already loaded
-    chrome.tabs.sendMessage(tabId, { action: "ping" }, (response) => {
+    chrome.tabs.sendMessage(tabId, { action: PING_ACTION }, (response) => {
       if (chrome.runtime.lastError) {
         //create a script tag to inject, then set a variable with the id in that script
         let idScript = document.createElement("script");
@@ -121,91 +113,30 @@ chrome.action.onClicked.addListener((tab: chrome.tabs.Tab) => {
   }
 });
 
-// Context menu integration
-chrome.contextMenus.create({
-  id: "extractKeywords",
-  title: "Extract Keywords from Job Posting",
-  contexts: ["page"],
-});
-
-chrome.contextMenus.onClicked.addListener(
-  (info: chrome.contextMenus.OnClickData, tab?: chrome.tabs.Tab) => {
-    if (info.menuItemId === "extractKeywords" && tab?.id) {
-      // Ensure content script is loaded first
-      chrome.tabs.sendMessage(tab.id, { action: "ping" }, (response) => {
-        if (chrome.runtime.lastError) {
-          // Inject content script first
-          chrome.scripting
-            .executeScript({
-              target: { tabId: tab.id! },
-              files: ["content.js"],
-            })
-            .then(() => {
-              return chrome.scripting.insertCSS({
-                target: { tabId: tab.id! },
-                files: ["content.css"],
-              });
-            })
-            .then(() => {
-              // Wait a bit then send extract message
-              chrome.tabs.sendMessage(
-                tab.id!,
-                { action: "extractKeywords", url: tab.url },
-                (response: any) => {
-                  if (response && response.success) {
-                    // Store results and show notification
-                    chrome.storage.local.set({
-                      lastKeywordExtraction: {
-                        url: tab.url,
-                        timestamp: Date.now(),
-                        data: response,
-                      },
-                    });
-                    console.log(
-                      "Keywords extracted via context menu:",
-                      response.extractedKeywords.length,
-                      "keywords"
-                    );
-                  }
-                }
-              );
-            })
-            .catch((error) => {
-              console.error(
-                "Failed to inject content script for context menu:",
-                error
-              );
-            });
-        } else {
-          // Content script already loaded
-          chrome.tabs.sendMessage(
-            tab.id!,
-            { action: "extractKeywords", url: tab.url },
-            (response: any) => {
-              if (response && response.success) {
-                // Store results and show notification
-                chrome.storage.local.set({
-                  lastKeywordExtraction: {
-                    url: tab.url,
-                    timestamp: Date.now(),
-                    data: response,
-                  },
-                });
-                console.log(
-                  "Keywords extracted via context menu:",
-                  response.extractedKeywords.length,
-                  "keywords"
-                );
-              }
-            }
-          );
-        }
-      });
-    } else if (info.menuItemId === "generateAIPrompt" && tab?.id) {
-      // Open popup to handle AI prompt generation
-      chrome.action.openPopup();
-    }
-  }
-);
-
-console.log("OpenResume background script loaded");
+//// Context menu integration
+//chrome.contextMenus.create({
+//  id: "extractKeywords",
+//  title: "Extract Keywords from Job Posting",
+//  contexts: ["page"],
+//});
+//
+//chrome.contextMenus.onClicked.addListener(
+//  (info: chrome.contextMenus.OnClickData, tab?: chrome.tabs.Tab) => {
+//    if (info.menuItemId === "extractKeywords" && tab?.id) {
+//      chrome.tabs.sendMessage(
+//        tab.id!,
+//        { action: EXTRACT_KEYWORDS_ACTION, url: tab.url },
+//        (response: any) => {
+//          if (response && response.success) {
+//            chrome.storage.local.set({
+//              lastKeywordExtraction: {
+//                url: tab.url,
+//                timestamp: Date.now(),
+//                data: response.data,
+//              },
+//            });
+//          }
+//        }
+//      );
+//    }
+//  });

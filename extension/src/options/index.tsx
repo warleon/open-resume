@@ -1,8 +1,8 @@
-import React from 'react';
-import { createRoot } from 'react-dom/client';
-import './options.css';
+import React from "react";
+import { createRoot } from "react-dom/client";
+import "./options.css";
 
-import { env } from '@lib/env';
+import { env } from "@lib/env";
 
 interface OptionsProps {}
 
@@ -10,11 +10,11 @@ const Options: React.FC<OptionsProps> = () => {
   const [settings, setSettings] = React.useState({
     autoExtract: true,
     showNotifications: true,
-    defaultTemplate: 'modern',
-    apiEndpoint: env.PUBLIC_URL
+    defaultTemplate: "modern",
+    apiEndpoint: env.PUBLIC_URL,
   });
-  
-  const [savedMessage, setSavedMessage] = React.useState('');
+
+  const [savedMessage, setSavedMessage] = React.useState("");
 
   React.useEffect(() => {
     // Load saved settings
@@ -25,8 +25,8 @@ const Options: React.FC<OptionsProps> = () => {
 
   const handleSave = () => {
     chrome.storage.sync.set(settings, () => {
-      setSavedMessage('Settings saved successfully!');
-      setTimeout(() => setSavedMessage(''), 3000);
+      setSavedMessage("Settings saved successfully!");
+      setTimeout(() => setSavedMessage(""), 3000);
     });
   };
 
@@ -34,19 +34,19 @@ const Options: React.FC<OptionsProps> = () => {
     const defaultSettings = {
       autoExtract: true,
       showNotifications: true,
-      defaultTemplate: 'modern',
-      apiEndpoint: env.PUBLIC_URL
+      defaultTemplate: "modern",
+      apiEndpoint: env.PUBLIC_URL,
     };
     setSettings(defaultSettings);
     chrome.storage.sync.set(defaultSettings, () => {
-      setSavedMessage('Settings reset to defaults!');
-      setTimeout(() => setSavedMessage(''), 3000);
+      setSavedMessage("Settings reset to defaults!");
+      setTimeout(() => setSavedMessage(""), 3000);
     });
   };
 
   const openMainApp = () => {
     chrome.tabs.create({
-      url: settings.apiEndpoint
+      url: settings.apiEndpoint,
     });
   };
 
@@ -60,13 +60,15 @@ const Options: React.FC<OptionsProps> = () => {
       <div className="options-content">
         <div className="settings-section">
           <h2>General Settings</h2>
-          
+
           <div className="setting-item">
             <label className="setting-label">
               <input
                 type="checkbox"
                 checked={settings.autoExtract}
-                onChange={(e) => setSettings({...settings, autoExtract: e.target.checked})}
+                onChange={(e) =>
+                  setSettings({ ...settings, autoExtract: e.target.checked })
+                }
               />
               Auto-extract keywords when visiting job sites
             </label>
@@ -80,22 +82,28 @@ const Options: React.FC<OptionsProps> = () => {
               <input
                 type="checkbox"
                 checked={settings.showNotifications}
-                onChange={(e) => setSettings({...settings, showNotifications: e.target.checked})}
+                onChange={(e) =>
+                  setSettings({
+                    ...settings,
+                    showNotifications: e.target.checked,
+                  })
+                }
               />
               Show notifications
             </label>
             <p className="setting-description">
-              Display notifications when keywords are extracted or actions are completed
+              Display notifications when keywords are extracted or actions are
+              completed
             </p>
           </div>
 
           <div className="setting-item">
-            <label className="setting-label">
-              Default Resume Template
-            </label>
+            <label className="setting-label">Default Resume Template</label>
             <select
               value={settings.defaultTemplate}
-              onChange={(e) => setSettings({...settings, defaultTemplate: e.target.value})}
+              onChange={(e) =>
+                setSettings({ ...settings, defaultTemplate: e.target.value })
+              }
               className="setting-select"
             >
               <option value="modern">Modern</option>
@@ -109,13 +117,13 @@ const Options: React.FC<OptionsProps> = () => {
           </div>
 
           <div className="setting-item">
-            <label className="setting-label">
-              OpenResume Website URL
-            </label>
+            <label className="setting-label">OpenResume Website URL</label>
             <input
               type="url"
               value={settings.apiEndpoint}
-              onChange={(e) => setSettings({...settings, apiEndpoint: e.target.value})}
+              onChange={(e) =>
+                setSettings({ ...settings, apiEndpoint: e.target.value })
+              }
               className="setting-input"
               placeholder={env.PUBLIC_URL}
             />
@@ -127,26 +135,22 @@ const Options: React.FC<OptionsProps> = () => {
 
         <div className="settings-section">
           <h2>Quick Actions</h2>
-          
+
           <div className="action-buttons">
             <button className="btn btn-primary" onClick={openMainApp}>
               Open OpenResume App
             </button>
-            
+
             <button className="btn btn-success" onClick={handleSave}>
               Save Settings
             </button>
-            
+
             <button className="btn btn-warning" onClick={handleReset}>
               Reset to Defaults
             </button>
           </div>
 
-          {savedMessage && (
-            <div className="save-message">
-              {savedMessage}
-            </div>
-          )}
+          {savedMessage && <div className="save-message">{savedMessage}</div>}
         </div>
 
         <div className="settings-section">
@@ -156,10 +160,15 @@ const Options: React.FC<OptionsProps> = () => {
               <strong>OpenResume Extension</strong> v1.0.0
             </p>
             <p>
-              A browser extension that extracts keywords from job postings to help you optimize your resume.
+              A browser extension that extracts keywords from job postings to
+              help you optimize your resume.
             </p>
             <p>
-              <a href="https://github.com/xitanggg/open-resume" target="_blank" rel="noopener noreferrer">
+              <a
+                href="https://github.com/xitanggg/open-resume"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 View on GitHub
               </a>
             </p>
@@ -171,8 +180,8 @@ const Options: React.FC<OptionsProps> = () => {
 };
 
 // Initialize options page
-const container = document.getElementById('options-root');
+const container = document.getElementById("options-root");
 if (container) {
   const root = createRoot(container);
   root.render(<Options />);
-} 
+}
