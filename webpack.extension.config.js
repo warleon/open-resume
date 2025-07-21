@@ -42,7 +42,7 @@ module.exports = (env, argv) => {
               options: {
                 postcssOptions: {
                   plugins: [
-                    require('tailwindcss')('./extension/tailwind.config.js'),
+                    require('tailwindcss')('./tailwind.config.ts'),
                     require('autoprefixer'),
                   ],
                 },
