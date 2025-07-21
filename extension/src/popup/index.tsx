@@ -1,6 +1,7 @@
-import React from 'react';
-import { createRoot } from 'react-dom/client';
-import './popup.css';
+import React from "react";
+import { createRoot } from "react-dom/client";
+import "./popup.css";
+import { EXTRACT_KEYWORDS_ACTION } from "background/actions";
 
 interface PopupProps {}
 
@@ -13,19 +14,24 @@ interface KeywordExtractionResult {
 }
 
 const Popup: React.FC<PopupProps> = () => {
-  const [currentTab, setCurrentTab] = React.useState<chrome.tabs.Tab | null>(null);
+  const [currentTab, setCurrentTab] = React.useState<chrome.tabs.Tab | null>(
+    null
+  );
   const [isExtractingKeywords, setIsExtractingKeywords] = React.useState(false);
-  const [keywordResults, setKeywordResults] = React.useState<KeywordExtractionResult | null>(null);
+  const [keywordResults, setKeywordResults] =
+    React.useState<KeywordExtractionResult | null>(null);
   const [hasJobContent, setHasJobContent] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [contentScriptLoaded, setContentScriptLoaded] = React.useState<boolean | null>(null);
+  const [contentScriptLoaded, setContentScriptLoaded] = React.useState<
+    boolean | null
+  >(null);
 
   React.useEffect(() => {
     // Get current active tab
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs[0]) {
         setCurrentTab(tabs[0]);
-        
+
         // Check if content script is loaded and if current page has job content
         if (tabs[0].id) {
           checkContentScriptStatus(tabs[0].id);
@@ -37,71 +43,42 @@ const Popup: React.FC<PopupProps> = () => {
   const checkContentScriptStatus = async (tabId: number) => {
     try {
       // Try to ping the content script
-      chrome.tabs.sendMessage(tabId, { action: 'ping' }, (response) => {
+      chrome.tabs.sendMessage(tabId, { action: "ping" }, (response) => {
         if (chrome.runtime.lastError) {
           // Content script not loaded, try to inject it
           setContentScriptLoaded(false);
-          console.log('Content script not loaded, attempting injection...');
-          injectContentScript(tabId);
-        } else if (response && response.status === 'loaded') {
+          console.log("Content script not loaded, attempting injection...");
+        } else if (response && response.status === "loaded") {
           setContentScriptLoaded(true);
-          console.log('Content script is loaded');
-          
+          console.log("Content script is loaded");
+
           // Check for job content
-          chrome.tabs.sendMessage(tabId, { action: 'checkJobContent' }, (response) => {
-            if (response && response.hasJobContent) {
-              setHasJobContent(true);
+          chrome.tabs.sendMessage(
+            tabId,
+            { action: "checkJobContent" },
+            (response) => {
+              if (response && response.hasJobContent) {
+                setHasJobContent(true);
+              }
             }
-          });
+          );
         }
       });
     } catch (error) {
-      console.error('Error checking content script status:', error);
+      console.error("Error checking content script status:", error);
       setContentScriptLoaded(false);
-    }
-  };
-
-  const injectContentScript = async (tabId: number) => {
-    try {
-      // Inject the content script files
-      await chrome.scripting.executeScript({
-        target: { tabId },
-        files: ['content.js']
-      });
-      
-      // Also inject the CSS
-      await chrome.scripting.insertCSS({
-        target: { tabId },
-        files: ['content.css']
-      });
-      
-      setContentScriptLoaded(true);
-      setError(null);
-      
-      // Wait a bit for the script to initialize, then check for job content
-      setTimeout(() => {
-        chrome.tabs.sendMessage(tabId, { action: 'checkJobContent' }, (response) => {
-          if (response && response.hasJobContent) {
-            setHasJobContent(true);
-          }
-        });
-      }, 500);
-      
-      console.log('Content script injected successfully');
-      return true;
-    } catch (error) {
-      console.error('Failed to inject content script:', error);
-      setError(`Failed to inject content script: ${error instanceof Error ? error.message : String(error)}`);
-      setContentScriptLoaded(false);
-      return false;
     }
   };
 
   const generateAIPrompt = (): string => {
-    if (keywordResults && keywordResults.extractedText && keywordResults.extractedText.trim()) {
+    if (
+      keywordResults &&
+      keywordResults.extractedText &&
+      keywordResults.extractedText.trim()
+    ) {
       // Use extracted text for better analysis
       const fullExtractedText = keywordResults.extractedText;
-        
+
       return `Please analyze the following job posting text and extract the key requirements, skills, technologies, and qualifications mentioned. Provide a summary of:
 
 1. Required technical skills
@@ -136,57 +113,52 @@ Please provide the final result as a comma-separated list of keywords ready to b
     try {
       const prompt = generateAIPrompt();
       await navigator.clipboard.writeText(prompt);
-      
+
       // Show temporary success feedback
-      setError('✅ Prompt copied to clipboard!');
+      setError("✅ Prompt copied to clipboard!");
       setTimeout(() => setError(null), 2000);
     } catch (error) {
-      console.error('Failed to copy prompt:', error);
-      setError('❌ Failed to copy prompt to clipboard');
+      console.error("Failed to copy prompt:", error);
+      setError("❌ Failed to copy prompt to clipboard");
     }
   };
 
   const handleExtractKeywords = async () => {
     if (!currentTab?.id) return;
-    
+
     setIsExtractingKeywords(true);
     setKeywordResults(null);
     setError(null);
-    
-    try {
-      // Check if content script is loaded, if not try to inject it
-      if (contentScriptLoaded === false) {
-        console.log('Content script not loaded, attempting to inject...');
-        const injected = await injectContentScript(currentTab.id);
-        if (!injected) {
-          return;
-        }
-      }
 
+    try {
       // Send message to content script to extract keywords
       const response = await new Promise((resolve, reject) => {
-        chrome.tabs.sendMessage(currentTab.id!, {
-          action: 'extractKeywords',
-          url: currentTab.url
-        }, (response) => {
-          if (chrome.runtime.lastError) {
-            reject(new Error(chrome.runtime.lastError.message));
-          } else {
-            resolve(response);
+        chrome.tabs.sendMessage(
+          currentTab.id!,
+          {
+            action: EXTRACT_KEYWORDS_ACTION,
+            url: currentTab.url,
+          },
+          (response) => {
+            if (chrome.runtime.lastError) {
+              reject(new Error(chrome.runtime.lastError.message));
+            } else {
+              resolve(response);
+            }
           }
-        });
+        );
       });
-      
-      console.log('Extracted keywords:', response);
+
+      console.log("Extracted keywords:", response);
       setKeywordResults(response as KeywordExtractionResult);
     } catch (error) {
-      console.error('Error extracting keywords:', error);
+      console.error("Error extracting keywords:", error);
       setKeywordResults({
-        extractedText: '',
+        extractedText: "",
         extractedKeywords: [],
-        extractionMethod: '',
+        extractionMethod: "",
         success: false,
-        error: 'Failed to extract keywords from this page'
+        error: "Failed to extract keywords from this page",
       });
     } finally {
       setIsExtractingKeywords(false);
@@ -195,21 +167,22 @@ Please provide the final result as a comma-separated list of keywords ready to b
 
   const copyKeywords = () => {
     if (keywordResults && keywordResults.extractedKeywords.length > 0) {
-      navigator.clipboard.writeText(keywordResults.extractedKeywords.join(', '));
-      
+      navigator.clipboard.writeText(
+        keywordResults.extractedKeywords.join(", ")
+      );
+
       // Show temporary success feedback
       const originalError = error;
-      setError('✅ Keywords copied to clipboard!');
+      setError("✅ Keywords copied to clipboard!");
       setTimeout(() => setError(originalError), 2000);
     }
   };
 
   const openOptions = () => {
     chrome.tabs.create({
-      url: chrome.runtime.getURL('options.html')
+      url: chrome.runtime.getURL("options.html"),
     });
   };
-
 
   return (
     <div className="popup-container">
@@ -219,7 +192,7 @@ Please provide the final result as a comma-separated list of keywords ready to b
             <h1 className="popup-title">OpenResume</h1>
             <p className="popup-subtitle">Resume Builder Extension</p>
           </div>
-          <button 
+          <button
             className="settings-button"
             onClick={openOptions}
             title="Settings"
@@ -228,16 +201,18 @@ Please provide the final result as a comma-separated list of keywords ready to b
           </button>
         </div>
       </div>
-      
+
       <div className="popup-content">
         <div className="current-page">
           <h3>Current Page:</h3>
-          <p className="page-title">{currentTab?.title || 'Unknown'}</p>
-          <p className="page-url">{currentTab?.url || 'Unknown'}</p>
-          
+          <p className="page-title">{currentTab?.title || "Unknown"}</p>
+          <p className="page-url">{currentTab?.url || "Unknown"}</p>
+
           {contentScriptLoaded === false && (
             <div className="content-script-status">
-              <span className="status-badge error">⚠️ Content script not loaded</span>
+              <span className="status-badge error">
+                ⚠️ Content script not loaded
+              </span>
             </div>
           )}
           {contentScriptLoaded === true && (
@@ -247,10 +222,12 @@ Please provide the final result as a comma-separated list of keywords ready to b
           )}
           {contentScriptLoaded === null && (
             <div className="content-script-status">
-              <span className="status-badge loading">🔄 Checking extension status...</span>
+              <span className="status-badge loading">
+                🔄 Checking extension status...
+              </span>
             </div>
           )}
-          
+
           {hasJobContent && (
             <div className="job-indicator mt-2">
               <span className="job-badge">🎯 Job Posting Detected</span>
@@ -259,18 +236,24 @@ Please provide the final result as a comma-separated list of keywords ready to b
         </div>
 
         {error && (
-          <div className={`error-message ${error.startsWith('✅') ? 'success-message' : ''} absolute top-32 left-1/2 -translate-x-1/2`}>
+          <div
+            className={`error-message ${
+              error.startsWith("✅") ? "success-message" : ""
+            } absolute left-1/2 top-32 -translate-x-1/2`}
+          >
             <p>{error}</p>
           </div>
         )}
 
         <div className="actions space-y-3">
-          <button 
+          <button
             className="btn btn-primary w-full"
             onClick={handleExtractKeywords}
             disabled={isExtractingKeywords}
           >
-            {isExtractingKeywords ? 'Extracting Keywords...' : '🔍 Extract Keywords'}
+            {isExtractingKeywords
+              ? "Extracting Keywords..."
+              : "🔍 Extract Keywords"}
           </button>
         </div>
 
@@ -278,18 +261,21 @@ Please provide the final result as a comma-separated list of keywords ready to b
           <div className="keyword-results">
             {keywordResults.success ? (
               <div className="keywords-success">
-                <h4>✅ Keywords Extracted ({keywordResults.extractedKeywords.length})</h4>
-                <button 
-                  className="btn btn-copy mb-2"
-                  onClick={copyKeywords}
-                >
+                <h4>
+                  ✅ Keywords Extracted (
+                  {keywordResults.extractedKeywords.length})
+                </h4>
+                <button className="btn btn-copy mb-2" onClick={copyKeywords}>
                   📋 Copy Keywords
                 </button>
                 <div className="keywords-list">
-                  {keywordResults.extractedKeywords.join(', ')}
+                  {keywordResults.extractedKeywords.join(", ")}
                 </div>
                 <p className="extraction-method">
-                  Method: {keywordResults.extractionMethod === 'api-based' ? '🔗 API-based extraction' : '📝 Simple fallback extraction'}
+                  Method:{" "}
+                  {keywordResults.extractionMethod === "api-based"
+                    ? "🔗 API-based extraction"
+                    : "📝 Simple fallback extraction"}
                 </p>
               </div>
             ) : (
@@ -304,19 +290,14 @@ Please provide the final result as a comma-separated list of keywords ready to b
         {keywordResults && keywordResults.success && (
           <div className="ai-prompt-preview">
             <h4>📝 AI Analysis Prompt Preview:</h4>
-            
+
             <div className="ai-prompt-actions mb-2">
-              <button 
-                className="btn btn-ai-secondary"
-                onClick={copyPromptOnly}
-              >
+              <button className="btn btn-ai-secondary" onClick={copyPromptOnly}>
                 📋 Copy AI Prompt
               </button>
             </div>
-            
-            <div className="prompt-preview">
-              {generateAIPrompt()}
-            </div>
+
+            <div className="prompt-preview">{generateAIPrompt()}</div>
           </div>
         )}
 
@@ -334,8 +315,8 @@ Please provide the final result as a comma-separated list of keywords ready to b
 };
 
 // Initialize popup
-const container = document.getElementById('popup-root');
+const container = document.getElementById("popup-root");
 if (container) {
   const root = createRoot(container);
   root.render(<Popup />);
-} 
+}

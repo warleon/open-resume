@@ -3,6 +3,7 @@ import { env } from "@lib/env";
 import { EXTRACT_KEYWORDS_ACTION, KEYWORDS_EXTRACTED_ACTION, PING_ACTION } from "./actions";
 import { onPing } from "./onPing";
 import { onKeywordsExtracted } from "./onKeywordsExtracted";
+import { onExtractKeywords } from "./onExtractKeywords";
 
 // Handle extension installation
 chrome.runtime.onInstalled.addListener(
@@ -28,6 +29,8 @@ const onMessageHandler = (
       return onPing(request, sender, sendResponse);
     case KEYWORDS_EXTRACTED_ACTION:
       return onKeywordsExtracted(request, sender, sendResponse);
+    case EXTRACT_KEYWORDS_ACTION:
+      return onExtractKeywords(request, sender, sendResponse);
     default:
       return false;
   }
