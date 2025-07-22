@@ -12,6 +12,7 @@ import addPdfSrc from "public/assets/add-pdf.svg";
 import Image from "next/image";
 import { cx } from "lib/cx";
 import { deepClone } from "lib/deep-clone";
+import { JobHuntState } from "lib/redux/jobHuntSlice";
 
 const defaultFileState = {
   name: "",
@@ -74,6 +75,16 @@ export const ResumeDropzone = ({
   const onImportClick = async () => {
     const resume = await parseResumeFromPdf(file.fileUrl);
     const settings = deepClone(initialSettings);
+    const jobHunt: JobHuntState = {
+      jobUrl: "",
+      isValidUrl: false,
+      extractedHtml: "",
+      extractedText: "",
+      extractedKeywords: [],
+      isExtracting: false,
+      extractionError: null,
+      iframeLoaded: false,
+    };
 
     // Set formToShow settings based on uploaded resume if users have used the app before
     if (getHasUsedAppBefore()) {
@@ -84,13 +95,20 @@ export const ResumeDropzone = ({
         projects: resume.projects.length > 0,
         skills: resume.skills.descriptions.length > 0,
         custom: resume.custom.descriptions.length > 0,
+        volunteer: resume.volunteer.length > 0,
+        awards: resume.awards.length > 0,
+        certificates: resume.certificates.length > 0,
+        publications: resume.publications.length > 0,
+        languages: resume.languages.length > 0,
+        interests: resume.interests.length > 0,
+        references: resume.references.length > 0,
       };
       for (const section of sections) {
         settings.formToShow[section] = sectionToFormToShow[section];
       }
     }
 
-    saveStateToLocalStorage({ resume, settings });
+    saveStateToLocalStorage({ resume, settings, jobHunt });
     router.push("/resume-builder");
   };
 

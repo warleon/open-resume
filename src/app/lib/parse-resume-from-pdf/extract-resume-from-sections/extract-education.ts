@@ -93,7 +93,10 @@ export const extractEducation = (sections: ResumeSectionToLines) => {
       descriptions = getBulletPointsFromLines(descriptionsLines);
     }
 
-    educations.push({ school, degree, gpa, date, descriptions });
+    educations.push({
+      school, degree, gpa, date, descriptions,
+      url: "TODO: INSERT EDUCATION URL"
+    });
     educationsScores.push({
       schoolScores,
       degreeScores,
@@ -107,10 +110,10 @@ export const extractEducation = (sections: ResumeSectionToLines) => {
     if (coursesLines.length !== 0) {
       educations[0].descriptions.push(
         "Courses: " +
-          coursesLines
-            .flat()
-            .map((item) => item.text)
-            .join(" ")
+        coursesLines
+          .flat()
+          .map((item) => item.text)
+          .join(" ")
       );
     }
   }

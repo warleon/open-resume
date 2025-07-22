@@ -10,12 +10,14 @@ import { deepClone } from "lib/deep-clone";
 export const END_HOME_RESUME: Resume = {
   profile: {
     name: "John Doe",
-    summary:
-      "Software engineer obsessed with building exceptional products that people love",
+    summary: "Software engineer obsessed with building exceptional products that people love",
     email: "hello@openresume.com",
     phone: "123-456-7890",
     location: "NYC, NY",
     url: "linkedin.com/in/john-doe",
+    label: "",
+    image: "",
+    profiles: []
   },
   workExperiences: [
     {
@@ -27,6 +29,10 @@ export const END_HOME_RESUME: Resume = {
         "Create stunning home page product demo animations that drives up sign up rate by 20%",
         "Write clean code that is modular and easy to maintain while ensuring 100% test coverage",
       ],
+      location: "",
+      description: "",
+      url: "",
+      summary: ""
     },
     {
       company: "DEF Organization",
@@ -37,6 +43,10 @@ export const END_HOME_RESUME: Resume = {
         "Created a progress bar to help users track progress that drove up user retention by 15%",
         "Discovered and fixed 5 bugs in the existing codebase to enhance user experience",
       ],
+      location: "",
+      description: "",
+      url: "",
+      summary: ""
     },
     {
       company: "XYZ University",
@@ -46,6 +56,10 @@ export const END_HOME_RESUME: Resume = {
         "Devised a new NLP algorithm in text classification that results in 10% accuracy increase",
         "Compiled and presented research findings to a group of 20+ faculty and students",
       ],
+      location: "",
+      description: "",
+      url: "",
+      summary: ""
     },
   ],
   educations: [
@@ -59,6 +73,7 @@ export const END_HOME_RESUME: Resume = {
         "Teaching Assistant for Programming for the Web (2022 - 2023)",
         "Coursework: Object-Oriented Programming (A+), Programming for the Web (A+), Cloud Computing (A), Introduction to Machine Learning (A-), Algorithms Analysis (A-)",
       ],
+      url: ""
     },
   ],
   projects: [
@@ -68,6 +83,12 @@ export const END_HOME_RESUME: Resume = {
       descriptions: [
         "Created and launched a free resume builder web app that allows thousands of users to create professional resume easily and land their dream jobs",
       ],
+      description: "",
+      url: "",
+      keywords: [],
+      roles: [],
+      entity: "",
+      type: ""
     },
   ],
   skills: {
@@ -87,12 +108,18 @@ export const END_HOME_RESUME: Resume = {
   custom: {
     descriptions: [],
   },
+  volunteer: [],
+  awards: [],
+  certificates: [],
+  publications: [],
+  languages: [],
+  interests: [],
+  references: []
 };
 
 export const START_HOME_RESUME: Resume = {
   profile: deepClone(initialProfile),
-  workExperiences: END_HOME_RESUME.workExperiences.map(() =>
-    deepClone(initialWorkExperience)
+  workExperiences: END_HOME_RESUME.workExperiences.map(() => deepClone(initialWorkExperience)
   ),
   educations: [deepClone(initialEducation)],
   projects: [deepClone(initialProject)],
@@ -106,4 +133,11 @@ export const START_HOME_RESUME: Resume = {
   custom: {
     descriptions: [],
   },
+  volunteer: [],
+  awards: [],
+  certificates: [],
+  publications: [],
+  languages: [],
+  interests: [],
+  references: []
 };

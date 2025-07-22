@@ -10,6 +10,10 @@ const nextConfig = {
   // https://github.com/mozilla/pdf.js/issues/16214
   output: "standalone",
 
+  experimental: {
+    useCache: true,
+  },
+
   serverExternalPackages: ["drizzle-orm", "@libsql/client"],
   webpack: (config) => {
     // Setting resolve.alias to false tells webpack to ignore a module
@@ -23,28 +27,9 @@ const nextConfig = {
       topLevelAwait: true,
     };
 
-    //config.module.rules.push({
-    //  test: /\.node$/,
-    //  loader: "node-loader",
-    //});
-    //config.module.rules.push({
-    //  test: /\.d\.ts$/,
-    //  use: "null-loader",
-    //});
-    //config.module.rules.push({
-    //  test: /^(?!.*\..*)/,
-    //  use: "raw-loader",
-    //});
-    //config.module.rules.push({
-    //  test: /\.js$/,
-    //  enforce: "pre",
-    //  use: "source-map-loader",
-    //});
-
     return config;
   },
   pageExtensions: ["ts", "tsx", "js", "jsx", "md", "mdx"],
-  //transpilePackages: ["@libsql/client", "@libsql/core", "@libsql/hrana-client"],
 };
 const withMDX = createMDXPlugin({
   extension: /\.mdx?$/,

@@ -45,7 +45,15 @@ export const extractProject = (sections: ResumeSectionToLines) => {
     const descriptionsLines = subsectionLines.slice(descriptionsLineIdx);
     const descriptions = getBulletPointsFromLines(descriptionsLines);
 
-    projects.push({ project, date, descriptions });
+    projects.push({
+      project, date, descriptions,
+      description: "TODO: INSERT PROJECT DESCRIPTION",
+      url: "TODO: INSERT PROJECT URL",
+      keywords: ["TODO: INSERT PROJECT KEYWORDS"],
+      roles: ["TODO: INSERT PROJECT ROLES"],
+      entity: "TODO: INSERT PROJECT ENTITY",
+      type: "TODO: INSERT PROJECT TYPE"
+    });
     projectsScores.push({
       projectScores,
       dateScores,

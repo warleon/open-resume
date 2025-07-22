@@ -1,39 +1,42 @@
-"use server";
 import { db } from 'database/client';
 import { job_title as job_titleTable, keywords as keywordsTable } from 'database/schemas';
-import { unstable_cache } from 'next/cache';
 import { NextRequest, NextResponse } from 'next/server';
-import AhoCorasick from 'ahocorasick';
+import { Trie, Emit } from '@tanishiking/aho-corasick'
 import { JOB_TITLE_TAG, KEYWORDS_TAG } from './constants';
+import { cacheTag } from 'next/dist/server/use-cache/cache-tag';
 
 // Cached function to get all keywords and build AhoCorasick matcher
-export const getCachedKeywordMatcher = unstable_cache(
+const getCachedKeywordMatcher =
   async () => {
+    "use cache"
     const allKeywords = await db.select().from(keywordsTable);
     const keywordStrings = allKeywords.map(k => k.keyword.toLowerCase());
-
-    const ac = new AhoCorasick(keywordStrings);
-    return { matcher: ac, keywords: keywordStrings };
-  },
-  ['keyword-matcher'],
-  {
-    tags: [KEYWORDS_TAG],
-    revalidate: 3600 * 24, // Cache for 1 day
-  }
-);
-export const getCachedJobTitleMatcher = unstable_cache(
+    const ac = new Trie(keywordStrings);
+    const extract = async (text: string) => {
+      "use server";
+      return new Promise((resolve) => {
+        resolve(Array.from(new Set(ac.parseText(text.toLowerCase()).map(({ keyword }: Emit) => keyword))));
+      });
+    }
+    cacheTag(KEYWORDS_TAG)
+    return { extract, keywordsLength: keywordStrings.length };
+  };
+const getCachedJobTitleMatcher =
   async () => {
+    "use cache"
     const allJobTitles = await db.select().from(job_titleTable);
     const jobTitleStrings = allJobTitles.map(j => j.job_title.toLowerCase());
-    const ac = new AhoCorasick(jobTitleStrings);
-    return { matcher: ac, jobTitles: jobTitleStrings };
-  },
-  ['job_title-matcher'],
-  {
-    tags: [JOB_TITLE_TAG],
-    revalidate: 3600 * 24, // Cache for 1 day
+    const ac = new Trie(jobTitleStrings);
+    const extract = async (text: string) => {
+      "use server"
+      return new Promise((resolve) => {
+        resolve(Array.from(new Set(ac.parseText(text.toLowerCase()).map(({ keyword }: Emit) => keyword))));
+      });
+    }
+    cacheTag(JOB_TITLE_TAG)
+    return { extract, jobTitlesLength: jobTitleStrings.length };
   }
-);
+
 
 // POST /api/keywords/extract - Extract keywords from text
 export async function POST(request: NextRequest) {
@@ -45,31 +48,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Get the cached keyword matcher
-    const { matcher: keywordMatcher, keywords } = await getCachedKeywordMatcher();
-    const { matcher: jobTitleMatcher, jobTitles } = await getCachedJobTitleMatcher();
+    const { extract: keywordExtract, keywordsLength } = await getCachedKeywordMatcher();
+    const { extract: jobTitleExtract, jobTitlesLength } = await getCachedJobTitleMatcher();
 
-    if (keywords.length === 0) {
+    if (keywordsLength === 0 && jobTitlesLength === 0) {
       return NextResponse.json({ keywords: [], matches: [] });
     }
 
     // Use AhoCorasick to find all keyword matches in the text
-    const results = keywordMatcher.search(text.toLowerCase());
-    const jobTitleResults = jobTitleMatcher.search(text.toLowerCase());
+    const keywords = await keywordExtract(text);
+    const jobTitles = await jobTitleExtract(text);
 
-    // Extract unique keywords found and their positions
-    const foundKeywords = new Set<string>();
-    const foundJobTitles = new Set<string>();
-    results.forEach((result: any) => {
-      const keyword = keywords[result[1][0]];
-      foundKeywords.add(keyword);
-    });
-    jobTitleResults.forEach((result: any) => {
-      const jobTitle = jobTitles[result[1][0]];
-      foundJobTitles.add(jobTitle);
-    });
     return NextResponse.json({
-      keywords: Array.from(foundKeywords),
-      jobTitles: Array.from(foundJobTitles),
+      keywords,
+      jobTitles,
     });
   } catch (error) {
     console.error('Error extracting keywords:', error);

@@ -3,7 +3,6 @@ import * as schema from 'database/schemas';
 
 import { env } from "@lib/env"
 
-console.log("DEBUG ANTHONY ENV VARS:", JSON.stringify(env, null, 2))
 // Create drizzle instance
 export const db = drizzle({
   connection: {
