@@ -10,7 +10,7 @@ const getCachedKeywordMatcher =
   async () => {
     const allKeywords = await db.select().from(keywordsTable);
     const keywordStrings = allKeywords.map(k => k.keyword.toLowerCase());
-    const ac = new Trie(keywordStrings);
+    const ac = new Trie(keywordStrings, { allowOverlaps: false, onlyWholeWords: true });
     const extract = async (text: string) => {
       return new Promise((resolve) => {
         resolve(Array.from(new Set(ac.parseText(text.toLowerCase()).map(({ keyword }: Emit) => keyword))));
@@ -22,7 +22,7 @@ const getCachedJobTitleMatcher =
   async () => {
     const allJobTitles = await db.select().from(job_titleTable);
     const jobTitleStrings = allJobTitles.map(j => j.job_title.toLowerCase());
-    const ac = new Trie(jobTitleStrings);
+    const ac = new Trie(jobTitleStrings, { allowOverlaps: false, onlyWholeWords: true });
     const extract = async (text: string) => {
       return new Promise((resolve) => {
         resolve(Array.from(new Set(ac.parseText(text.toLowerCase()).map(({ keyword }: Emit) => keyword))));
