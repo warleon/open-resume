@@ -11,7 +11,7 @@ const nextConfig = {
   output: "standalone",
 
   experimental: {
-    useCache: true,
+    //useCache: true,
   },
 
   serverExternalPackages: ["drizzle-orm", "@libsql/client"],

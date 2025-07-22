@@ -8,32 +8,26 @@ import { cacheTag } from 'next/dist/server/use-cache/cache-tag';
 // Cached function to get all keywords and build AhoCorasick matcher
 const getCachedKeywordMatcher =
   async () => {
-    "use cache"
     const allKeywords = await db.select().from(keywordsTable);
     const keywordStrings = allKeywords.map(k => k.keyword.toLowerCase());
     const ac = new Trie(keywordStrings);
     const extract = async (text: string) => {
-      "use server";
       return new Promise((resolve) => {
         resolve(Array.from(new Set(ac.parseText(text.toLowerCase()).map(({ keyword }: Emit) => keyword))));
       });
     }
-    cacheTag(KEYWORDS_TAG)
     return { extract, keywordsLength: keywordStrings.length };
   };
 const getCachedJobTitleMatcher =
   async () => {
-    "use cache"
     const allJobTitles = await db.select().from(job_titleTable);
     const jobTitleStrings = allJobTitles.map(j => j.job_title.toLowerCase());
     const ac = new Trie(jobTitleStrings);
     const extract = async (text: string) => {
-      "use server"
       return new Promise((resolve) => {
         resolve(Array.from(new Set(ac.parseText(text.toLowerCase()).map(({ keyword }: Emit) => keyword))));
       });
     }
-    cacheTag(JOB_TITLE_TAG)
     return { extract, jobTitlesLength: jobTitleStrings.length };
   }
 
