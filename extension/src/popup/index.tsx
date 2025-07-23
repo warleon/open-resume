@@ -1,13 +1,16 @@
 import React, { useMemo } from "react";
 import { createRoot } from "react-dom/client";
 import "./popup.css";
-import { extractor } from "@utils/keywordExtractor";
+import { extractKeywords } from "@utils/keywordExtractor";
 import { KeywordExtractionResult } from "@api/keywords/extract/types";
 
 interface PopupProps {}
 
 const Popup: React.FC<PopupProps> = () => {
   const [currentTab, setCurrentTab] = React.useState<chrome.tabs.Tab | null>(
+    null
+  );
+  const [currentTabHtml, setCurrentTabHtml] = React.useState<string | null>(
     null
   );
   const [isExtractingKeywords, setIsExtractingKeywords] = React.useState(false);
@@ -18,14 +21,33 @@ const Popup: React.FC<PopupProps> = () => {
 
   React.useEffect(() => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      console.error("in useEffect, tabs: ", tabs);
       if (tabs[0]) {
+        const activeTabId = tabs[0].id;
         setCurrentTab(tabs[0]);
+        if (activeTabId) {
+          chrome.scripting
+            .executeScript({
+              target: { tabId: activeTabId },
+              // injectImmediately: true,  // uncomment this to make it execute straight away, other wise it will wait for document_idle
+              func: DOMtoString,
+              args: ["body"], // you can use this to target what element to get the html for
+            })
+            .then((results) => {
+              console.error(
+                "in useEffect, results of HTML extraction: ",
+                results
+              );
+              setCurrentTabHtml(results[0].result!);
+            });
+        }
       }
     });
   }, []);
 
   const AIPrompt = useMemo(() => {
     console.error("in AIPrompt, extractedText length: ", extractedText?.length);
+    console.error("in AIPrompt, extractedText: ", extractedText);
     if (extractedText && extractedText.length > 0) {
       return `Please analyze the following job posting text and extract the key requirements, skills, technologies, and qualifications mentioned. Provide a summary of:
 
@@ -41,9 +63,9 @@ Please provide the final result as a comma-separated list of keywords ready to b
 
 Job Posting Content:
 ${extractedText}`;
-    } else {
-      // Fallback to URL if no extracted text available
-      return `Please analyze the job posting from this URL: ${currentTab?.url}. Extract the key requirements, skills, technologies, and qualifications mentioned. Provide a summary of:
+    }
+    // Fallback to URL if no extracted text available
+    return `Please analyze the job posting from this URL: ${currentTab?.url}. Extract the key requirements, skills, technologies, and qualifications mentioned. Provide a summary of:
 
 1. Required technical skills
 2. Required soft skills  
@@ -54,7 +76,6 @@ ${extractedText}`;
 7. Keywords for resume optimization
 
 Please provide the final result as a comma-separated list of keywords ready to be copied.`;
-    }
   }, [extractedText, currentTab?.url]);
 
   const copyPromptOnly = async () => {
@@ -73,15 +94,16 @@ Please provide the final result as a comma-separated list of keywords ready to b
   };
 
   const handleExtractKeywords = async () => {
-    if (!currentTab?.id) return;
+    if (!currentTab?.url || !currentTabHtml) return;
 
     setIsExtractingKeywords(true);
     setKeywordResults(null);
     setError(null);
 
     try {
-      const { result, textContent } = await extractor.extractKeywords(
-        currentTab.url
+      const { result, textContent } = await extractKeywords(
+        currentTab.url,
+        currentTabHtml
       );
       setKeywordResults(result);
       console.error("textContent length: ", textContent.length);
@@ -218,4 +240,15 @@ const container = document.getElementById("popup-root");
 if (container) {
   const root = createRoot(container);
   root.render(<Popup />);
+}
+
+function DOMtoString(selector: string) {
+  let selectedElement: HTMLElement | null = null;
+  if (selector) {
+    selectedElement = document.querySelector(selector);
+    if (!selectedElement) console.error("querySelector failed to find node");
+  } else {
+    selectedElement = document.documentElement;
+  }
+  return selectedElement?.outerHTML;
 }

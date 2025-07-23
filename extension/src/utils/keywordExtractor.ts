@@ -150,152 +150,82 @@ function extractKeywordsSimple(text: string): string[] {
         .map(([word]) => word);
 }
 
-class KeywordExtractor {
-    constructor() {
-        console.error("KeywordExtractor initialized");
-    }
 
-    // Advanced keyword extraction
-    public async extractKeywords(url?: string): Promise<{ result: KeywordExtractionResult, textContent: string }> {
-        console.error(
-            "Starting keyword extraction for URL:",
-            url || window.location.href
-        );
+// Advanced keyword extraction
+export async function extractKeywords(url: string, htmlContent: string): Promise<{ result: KeywordExtractionResult, textContent: string }> {
+    console.error(
+        "Starting keyword extraction for HTML content:",
+        htmlContent
+    );
 
-        let result: KeywordExtractionResult = {
-            keywords: [],
-            jobTitles: [],
-            method: "api"
-        };
-        let textContent = "";
+    let result: KeywordExtractionResult = {
+        keywords: [],
+        jobTitles: [],
+        method: "api"
+    };
+    let textContent = "";
+
+    try {
+        console.error("Attempting to extract HTML content from:", url);
+
+        // Detect if this is a LinkedIn job posting
+        const isLinkedInJob =
+            url && url.indexOf("linkedin.com") !== -1 &&
+            url.indexOf("/jobs/") !== -1;
 
         try {
-            console.error("Attempting to extract HTML content from:", url);
-            let htmlContent = "";
 
-            // Detect if this is a LinkedIn job posting
-            const isLinkedInJob =
-                window.location.href.indexOf("linkedin.com") !== -1 &&
-                window.location.href.indexOf("/jobs/") !== -1;
-
-            // Method 1: Extract from current page DOM
-            htmlContent = document.documentElement.outerHTML;
-
-            console.error(
-                `📊 HTML extraction successful. Content length: ${htmlContent.length} characters`
-            );
-
-            try {
-
-                console.error("isLinkedInJob:", isLinkedInJob);
-                if (isLinkedInJob) {
-                    console.error("Extracting LinkedIn job description...");
-                    textContent = htmlToText(htmlContent/*, {
+            console.error("isLinkedInJob:", isLinkedInJob);
+            const selectors = [{ selector: 'a', options: { hideLinkHrefIfSameAsText: true, ignoreHref: true, noAnchorUrl: true } }, { selector: 'img', format: 'skip' }]
+            if (isLinkedInJob) {
+                console.error("Extracting LinkedIn job description...");
+                textContent = htmlToText(htmlContent, {
+                    baseElements: {
                         selectors: [
-                            ".jobs-description__content",
-                            ".jobs-description-content",
-                            ".jobs-description-content__text",
-                            ".jobs-box__html-content",
-                            ".jobs-description__container",
-                            ".jobs-description",
-                            //"not(#popup-root)"
-                        ].map((selector) => ({
-                            selector,
-                        })),
-                    }*/);
-                } else {
-                    console.error("Extracting non-LinkedIn job description...");
-                    textContent = htmlToText(htmlContent/*, {
-                        selectors: [
-                            "body",
-                            //"not(#popup-root)"
-                        ].map((selector) => ({
-                            selector,
-                        })),
-                    }*/);
-                }
-                console.error("successfully extracted textContent, length: ", textContent.length);
-            } catch (error) {
-                const newError = new Error(`Error extracting textContent: ${JSON.stringify(error)}`);
-                throw newError;
+                            ".jobs-company",
+                            "#SALARY",
+                            ".jobs-description--reformatted",
+                            ".job-details-jobs-unified-top-card__job-title",
+                            ".job-details-jobs-unified-top-card__primary-description-container"
+                        ]
+                    },
+                    selectors
+                });
+            } else {
+                console.error("Extracting non-LinkedIn job description...");
+                textContent = htmlToText(htmlContent, {
+                    selectors
+                });
             }
-
-            // Try API-based extraction first, fallback to simple extraction
-            try {
-                console.error("Attempting API-based keyword extraction...");
-                result = await extractKeywordsFromAPI(textContent);
-                if (result.error) {
-                    throw new Error(result.error);
-                }
-            } catch (apiError) {
-                result.error = `API extraction failed, falling back to simple extraction: ${JSON.stringify(apiError)}`;
-                console.error(result.error);
-
-                const keywords = extractKeywordsSimple(textContent);
-                result.keywords = keywords;
-                result.jobTitles = [];
-                result.method = "simple";
-            }
+            console.error("successfully extracted textContent, length: ", textContent.length);
         } catch (error) {
-            result.keywords = [];
-            result.jobTitles = [];
-            result.method = "error";
-            result.error = `Error extracting keywords: ${JSON.stringify(error)}`;
-            console.error(result.error);
+            const newError = new Error(`Error extracting textContent: ${JSON.stringify(error)}`);
+            throw newError;
         }
 
-        return { result, textContent: textContent.trim() };
+        // Try API-based extraction first, fallback to simple extraction
+        try {
+            console.error("Attempting API-based keyword extraction...");
+            result = await extractKeywordsFromAPI(textContent);
+            if (result.error) {
+                throw new Error(result.error);
+            }
+        } catch (apiError) {
+            result.error = `API extraction failed, falling back to simple extraction: ${JSON.stringify(apiError)}`;
+            console.error(result.error);
+
+            const keywords = extractKeywordsSimple(textContent);
+            result.keywords = keywords;
+            result.jobTitles = [];
+            result.method = "simple";
+        }
+    } catch (error) {
+        result.keywords = [];
+        result.jobTitles = [];
+        result.method = "error";
+        result.error = `Error extracting keywords: ${JSON.stringify(error)}`;
+        console.error(result.error);
     }
 
-    // Check if current page is a job posting
-    public hasJobContent(): boolean {
-        const jobIndicators = [
-            "job description",
-            "responsibilities",
-            "requirements",
-            "qualifications",
-            "apply now",
-            "job opening",
-            "position",
-            "salary",
-            "benefits",
-            "job posting",
-        ];
-
-        const pageText = document.body.innerText.toLowerCase();
-        const pageUrl = window.location.href.toLowerCase();
-
-        // Check for job sites in URL
-        const jobSites = [
-            "linkedin.com/jobs",
-            "indeed.com",
-            "glassdoor.com",
-            "monster.com",
-            "ziprecruiter.com",
-            "careerbuilder.com",
-            "jobs.",
-            "careers.",
-            "/jobs/",
-            "/careers/",
-        ];
-
-        const isJobSite = jobSites.some((site) => pageUrl.indexOf(site) !== -1);
-        const hasJobKeywords = jobIndicators.some(
-            (indicator) => pageText.indexOf(indicator) !== -1
-        );
-
-        const hasJob = isJobSite || hasJobKeywords;
-        console.error(
-            "Job content detection - isJobSite:",
-            isJobSite,
-            "hasJobKeywords:",
-            hasJobKeywords,
-            "result:",
-            hasJob
-        );
-
-        return hasJob;
-    }
+    return { result, textContent: textContent.trim() };
 }
-
-export const extractor = new KeywordExtractor();
