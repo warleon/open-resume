@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { createRoot } from "react-dom/client";
 import "./popup.css";
-import { extractor, KeywordExtractionResult } from "@utils/keywordExtractor";
+import { extractor } from "@utils/keywordExtractor";
+import { KeywordExtractionResult } from "@api/keywords/extract/types";
 
 interface PopupProps {}
 
@@ -12,65 +13,20 @@ const Popup: React.FC<PopupProps> = () => {
   const [isExtractingKeywords, setIsExtractingKeywords] = React.useState(false);
   const [keywordResults, setKeywordResults] =
     React.useState<KeywordExtractionResult | null>(null);
-  const [hasJobContent, setHasJobContent] = React.useState(false);
+  const [extractedText, setExtractedText] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
-  const [contentScriptLoaded, setContentScriptLoaded] = React.useState<
-    boolean | null
-  >(null);
 
   React.useEffect(() => {
-    // Get current active tab
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs[0]) {
         setCurrentTab(tabs[0]);
-
-        // Check if content script is loaded and if current page has job content
-        if (tabs[0].id) {
-          checkContentScriptStatus(tabs[0].id);
-        }
       }
     });
   }, []);
 
-  const checkContentScriptStatus = async (tabId: number) => {
-    try {
-      // Try to ping the content script
-      chrome.tabs.sendMessage(tabId, { action: "ping" }, (response) => {
-        if (chrome.runtime.lastError) {
-          // Content script not loaded, try to inject it
-          setContentScriptLoaded(false);
-          console.error("Content script not loaded, attempting injection...");
-        } else if (response && response.status === "loaded") {
-          setContentScriptLoaded(true);
-          console.error("Content script is loaded");
-
-          // Check for job content
-          chrome.tabs.sendMessage(
-            tabId,
-            { action: "checkJobContent" },
-            (response) => {
-              if (response && response.hasJobContent) {
-                setHasJobContent(true);
-              }
-            }
-          );
-        }
-      });
-    } catch (error) {
-      console.error("Error checking content script status:", error);
-      setContentScriptLoaded(false);
-    }
-  };
-
-  const generateAIPrompt = (): string => {
-    if (
-      keywordResults &&
-      keywordResults.extractedText &&
-      keywordResults.extractedText.trim()
-    ) {
-      // Use extracted text for better analysis
-      const fullExtractedText = keywordResults.extractedText;
-
+  const AIPrompt = useMemo(() => {
+    console.error("in AIPrompt, extractedText length: ", extractedText?.length);
+    if (extractedText && extractedText.length > 0) {
       return `Please analyze the following job posting text and extract the key requirements, skills, technologies, and qualifications mentioned. Provide a summary of:
 
 1. Required technical skills
@@ -84,7 +40,7 @@ const Popup: React.FC<PopupProps> = () => {
 Please provide the final result as a comma-separated list of keywords ready to be copied.
 
 Job Posting Content:
-${fullExtractedText}`;
+${extractedText}`;
     } else {
       // Fallback to URL if no extracted text available
       return `Please analyze the job posting from this URL: ${currentTab?.url}. Extract the key requirements, skills, technologies, and qualifications mentioned. Provide a summary of:
@@ -99,19 +55,20 @@ ${fullExtractedText}`;
 
 Please provide the final result as a comma-separated list of keywords ready to be copied.`;
     }
-  };
+  }, [extractedText, currentTab?.url]);
 
   const copyPromptOnly = async () => {
     try {
-      const prompt = generateAIPrompt();
+      const prompt = AIPrompt;
       await navigator.clipboard.writeText(prompt);
 
       // Show temporary success feedback
       setError("✅ Prompt copied to clipboard!");
-      setTimeout(() => setError(null), 2000);
     } catch (error) {
       console.error("Failed to copy prompt:", error);
       setError("❌ Failed to copy prompt to clipboard");
+    } finally {
+      setTimeout(() => setError(null), 3000);
     }
   };
 
@@ -123,33 +80,29 @@ Please provide the final result as a comma-separated list of keywords ready to b
     setError(null);
 
     try {
-      const data = await extractor.extractKeywords(currentTab.url);
-
-      setKeywordResults(data);
+      const { result, textContent } = await extractor.extractKeywords(
+        currentTab.url
+      );
+      setKeywordResults(result);
+      console.error("textContent length: ", textContent.length);
+      setExtractedText(textContent);
+      if (result.error) {
+        console.error(result.error);
+        throw new Error(result.error);
+      }
     } catch (error) {
-      console.error("Error extracting keywords:", error);
-      setKeywordResults({
-        extractedText: "",
-        extractedKeywords: [],
-        extractionMethod: "",
-        success: false,
-        error: "Failed to extract keywords from this page",
-      });
+      setError("❌ Failed to extract keywords from this page");
     } finally {
       setIsExtractingKeywords(false);
+      setTimeout(() => setError(null), 3000);
     }
   };
 
   const copyKeywords = () => {
-    if (keywordResults && keywordResults.extractedKeywords.length > 0) {
-      navigator.clipboard.writeText(
-        keywordResults.extractedKeywords.join(", ")
-      );
-
-      // Show temporary success feedback
-      const originalError = error;
+    if (keywordResults && keywordResults.keywords.length > 0) {
+      navigator.clipboard.writeText(keywordResults.keywords.join(", "));
       setError("✅ Keywords copied to clipboard!");
-      setTimeout(() => setError(originalError), 2000);
+      setTimeout(() => setError(null), 3000);
     }
   };
 
@@ -180,34 +133,10 @@ Please provide the final result as a comma-separated list of keywords ready to b
       <div className="popup-content">
         <div className="current-page">
           <h3>Current Page:</h3>
-          <p className="page-title">{currentTab?.title || "Unknown"}</p>
-          <p className="page-url">{currentTab?.url || "Unknown"}</p>
-
-          {contentScriptLoaded === false && (
-            <div className="content-script-status">
-              <span className="status-badge error">
-                ⚠️ Content script not loaded
-              </span>
-            </div>
-          )}
-          {contentScriptLoaded === true && (
-            <div className="content-script-status">
-              <span className="status-badge success">✅ Extension ready</span>
-            </div>
-          )}
-          {contentScriptLoaded === null && (
-            <div className="content-script-status">
-              <span className="status-badge loading">
-                🔄 Checking extension status...
-              </span>
-            </div>
-          )}
-
-          {hasJobContent && (
-            <div className="job-indicator mt-2">
-              <span className="job-badge">🎯 Job Posting Detected</span>
-            </div>
-          )}
+          <div className="scrollbar-none overflow-x-scroll">
+            <p className="page-title">{currentTab?.title || "Unknown"}</p>
+            <p className="page-url">{currentTab?.url || "Unknown"}</p>
+          </div>
         </div>
 
         {error && (
@@ -233,57 +162,52 @@ Please provide the final result as a comma-separated list of keywords ready to b
         </div>
 
         {keywordResults && (
-          <div className="keyword-results">
-            {keywordResults.success ? (
-              <div className="keywords-success">
-                <h4>
-                  ✅ Keywords Extracted (
-                  {keywordResults.extractedKeywords.length})
-                </h4>
-                <button className="btn btn-copy mb-2" onClick={copyKeywords}>
-                  📋 Copy Keywords
-                </button>
-                <div className="keywords-list">
-                  {keywordResults.extractedKeywords.join(", ")}
+          <>
+            <div className="keyword-results">
+              {keywordResults.error && (
+                <div className="keywords-success">
+                  <h4>✅ Keywords Extracted</h4>
+                  <button className="btn btn-copy mb-2" onClick={copyKeywords}>
+                    📋 Copy Keywords
+                  </button>
+                  <div className="keywords-list">
+                    {[
+                      ...keywordResults.keywords,
+                      ...keywordResults.jobTitles,
+                    ].join(", ")}
+                  </div>
+                  <p className="extraction-method">
+                    Extraction Method:{" "}
+                    {keywordResults.method === "api" &&
+                      "🔗 API-based extraction"}
+                    {keywordResults.method === "simple" &&
+                      "📝 Simple fallback extraction"}
+                    {keywordResults.method === "error" &&
+                      "❌ Error extracting keywords"}
+                    {keywordResults.method === "no keywords configured" &&
+                      "🔍 No keywords configured"}
+                    {keywordResults.method === "no keywords found" &&
+                      "🔍 No keywords found, please run the AI prompt to extract keywords"}
+                  </p>
                 </div>
-                <p className="extraction-method">
-                  Method:{" "}
-                  {keywordResults.extractionMethod === "api-based"
-                    ? "🔗 API-based extraction"
-                    : "📝 Simple fallback extraction"}
-                </p>
-              </div>
-            ) : (
-              <div className="keywords-error">
-                <h4>❌ Extraction Failed</h4>
-                <p>{keywordResults.error}</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {keywordResults && keywordResults.success && (
-          <div className="ai-prompt-preview">
-            <h4>📝 AI Analysis Prompt Preview:</h4>
-
-            <div className="ai-prompt-actions mb-2">
-              <button className="btn btn-ai-secondary" onClick={copyPromptOnly}>
-                📋 Copy AI Prompt
-              </button>
+              )}
             </div>
+            <div className="ai-prompt-preview">
+              <h4>📝 AI Analysis Prompt Preview:</h4>
 
-            <div className="prompt-preview">{generateAIPrompt()}</div>
-          </div>
+              <div className="ai-prompt-actions mb-2">
+                <button
+                  className="btn btn-ai-secondary"
+                  onClick={copyPromptOnly}
+                >
+                  📋 Copy AI Prompt
+                </button>
+              </div>
+
+              <div className="prompt-preview">{AIPrompt}</div>
+            </div>
+          </>
         )}
-
-        <div className="help-text space-y-2">
-          <p className="mb-2">Use this extension to:</p>
-          <ul className="space-y-1">
-            <li>Extract keywords from job postings</li>
-            <li>Generate AI analysis prompts</li>
-            <li>Optimize your resume with extracted insights</li>
-          </ul>
-        </div>
       </div>
     </div>
   );

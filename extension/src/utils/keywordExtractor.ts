@@ -1,13 +1,7 @@
 import { env } from "@lib/env";
 import { htmlToText } from "html-to-text";
+import { KeywordExtractionResult } from "@api/keywords/extract/types";
 
-export interface KeywordExtractionResult {
-    extractedText: string;
-    extractedKeywords: string[];
-    extractionMethod: string;
-    success: boolean;
-    error?: string;
-}
 
 export interface APIKeywordResponse {
     keywords: string[];
@@ -17,7 +11,7 @@ export interface APIKeywordResponse {
 // API-based keyword extraction function
 async function extractKeywordsFromAPI(
     text: string
-): Promise<{ keywords: string[]; jobTitles: string[] }> {
+): Promise<KeywordExtractionResult> {
     try {
         const apiBaseUrl = env.PUBLIC_URL;
         console.error("Using API endpoint:", apiBaseUrl);
@@ -31,19 +25,18 @@ async function extractKeywordsFromAPI(
         });
 
         if (!response.ok) {
-            throw new Error(
-                `API request failed: ${response.status} ${response.statusText}`
-            );
+            const newError = new Error(`API request failed: ${response.status} ${response.statusText}`);
+            console.error(newError);
+            throw newError;
         }
 
-        const data: APIKeywordResponse = await response.json();
-        return {
-            keywords: data.keywords || [],
-            jobTitles: data.jobTitles || [],
-        };
+        const data = await response.json();
+        console.error("API response:", data);
+        return data;
+
     } catch (error) {
-        console.error("Error calling keyword extraction API:", error);
-        throw error;
+        const newError = new Error(`Error calling keyword extraction API: ${JSON.stringify(error)}`);
+        throw newError;
     }
 }
 
@@ -163,22 +156,22 @@ class KeywordExtractor {
     }
 
     // Advanced keyword extraction
-    public async extractKeywords(url?: string): Promise<KeywordExtractionResult> {
+    public async extractKeywords(url?: string): Promise<{ result: KeywordExtractionResult, textContent: string }> {
         console.error(
             "Starting keyword extraction for URL:",
             url || window.location.href
         );
 
-        const result: KeywordExtractionResult = {
-            extractedText: "",
-            extractedKeywords: [],
-            extractionMethod: "",
-            success: false,
+        let result: KeywordExtractionResult = {
+            keywords: [],
+            jobTitles: [],
+            method: "api"
         };
+        let textContent = "";
 
         try {
+            console.error("Attempting to extract HTML content from:", url);
             let htmlContent = "";
-            let extractionMethod = "";
 
             // Detect if this is a LinkedIn job posting
             const isLinkedInJob =
@@ -187,84 +180,71 @@ class KeywordExtractor {
 
             // Method 1: Extract from current page DOM
             htmlContent = document.documentElement.outerHTML;
-            extractionMethod = "direct-dom";
 
             console.error(
-                `📊 Extraction successful via ${extractionMethod}. Content length: ${htmlContent.length} characters`
+                `📊 HTML extraction successful. Content length: ${htmlContent.length} characters`
             );
 
-            let textContent = "";
+            try {
 
-            if (isLinkedInJob) {
-                // For LinkedIn, try to extract job description specifically
-                const jobDescSelectors = [
-                    ".jobs-description__content",
-                    ".jobs-description-content",
-                    ".jobs-description-content__text",
-                    ".jobs-box__html-content",
-                    ".jobs-description__container",
-                    ".jobs-description",
-                ];
-
-                textContent = htmlToText(htmlContent, {
-                    selectors: jobDescSelectors.map((selector) => ({
-                        selector,
-                    })),
-                });
-            } else {
-                textContent = htmlToText(htmlContent);
+                console.error("isLinkedInJob:", isLinkedInJob);
+                if (isLinkedInJob) {
+                    console.error("Extracting LinkedIn job description...");
+                    textContent = htmlToText(htmlContent/*, {
+                        selectors: [
+                            ".jobs-description__content",
+                            ".jobs-description-content",
+                            ".jobs-description-content__text",
+                            ".jobs-box__html-content",
+                            ".jobs-description__container",
+                            ".jobs-description",
+                            //"not(#popup-root)"
+                        ].map((selector) => ({
+                            selector,
+                        })),
+                    }*/);
+                } else {
+                    console.error("Extracting non-LinkedIn job description...");
+                    textContent = htmlToText(htmlContent/*, {
+                        selectors: [
+                            "body",
+                            //"not(#popup-root)"
+                        ].map((selector) => ({
+                            selector,
+                        })),
+                    }*/);
+                }
+                console.error("successfully extracted textContent, length: ", textContent.length);
+            } catch (error) {
+                const newError = new Error(`Error extracting textContent: ${JSON.stringify(error)}`);
+                throw newError;
             }
-            result.extractedText = textContent;
 
             // Try API-based extraction first, fallback to simple extraction
             try {
                 console.error("Attempting API-based keyword extraction...");
-                const apiResult = await extractKeywordsFromAPI(textContent);
-
-                // Combine keywords and job titles
-                const allKeywords = [...apiResult.keywords, ...apiResult.jobTitles]; // TODO: display as different sets for better UX
-
-                result.extractedKeywords = allKeywords;
-                result.extractionMethod = "api-based";
-                result.success = true;
-
-                console.error(
-                    "🎯 API-based keywords extracted successfully:",
-                    allKeywords.length,
-                    "keywords found"
-                );
-                console.error("Keywords:", apiResult.keywords);
-                console.error("Job Titles:", apiResult.jobTitles);
+                result = await extractKeywordsFromAPI(textContent);
+                if (result.error) {
+                    throw new Error(result.error);
+                }
             } catch (apiError) {
-                console.warn(
-                    "API extraction failed, falling back to simple extraction:",
-                    apiError
-                );
+                result.error = `API extraction failed, falling back to simple extraction: ${JSON.stringify(apiError)}`;
+                console.error(result.error);
 
-                // Fallback to simple extraction
                 const keywords = extractKeywordsSimple(textContent);
-                result.extractedKeywords = keywords;
-                result.extractionMethod = "simple-fallback";
-                result.success = true;
-
-                console.error(
-                    "🎯 Fallback keywords extracted successfully:",
-                    keywords.length,
-                    "keywords found"
-                );
+                result.keywords = keywords;
+                result.jobTitles = [];
+                result.method = "simple";
             }
         } catch (error) {
-            console.error(
-                "Error extracting keywords:",
-                error instanceof Error ? error.message : String(error)
-            );
-            result.error =
-                error instanceof Error
-                    ? error.message
-                    : "Unknown error occurred during keyword extraction";
+            result.keywords = [];
+            result.jobTitles = [];
+            result.method = "error";
+            result.error = `Error extracting keywords: ${JSON.stringify(error)}`;
+            console.error(result.error);
         }
 
-        return result;
+        return { result, textContent: textContent.trim() };
     }
 
     // Check if current page is a job posting
