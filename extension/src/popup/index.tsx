@@ -59,10 +59,13 @@ const Popup: React.FC<PopupProps> = () => {
 6. Education requirements
 7. Keywords for resume optimization
 
-Please provide the final result as a comma-separated list of keywords ready to be copied.
+Please provide the final result as a comma-separated list of keywords and job titles, as separate lists, ready to be copied.
+Also include separate lists in the sql format to be inserted, just the values of the query.
+ONLY ADD THE VALUES PRESENT IN THE JOB POSTING TEXT.
 
 Job Posting Content:
-${extractedText}`;
+${extractedText}
+`;
     }
     // Fallback to URL if no extracted text available
     return `Please analyze the job posting from this URL: ${currentTab?.url}. Extract the key requirements, skills, technologies, and qualifications mentioned. Provide a summary of:
@@ -75,7 +78,10 @@ ${extractedText}`;
 6. Education requirements
 7. Keywords for resume optimization
 
-Please provide the final result as a comma-separated list of keywords ready to be copied.`;
+Please provide the final result as a comma-separated list of keywords and job titles, as separate lists, ready to be copied.
+Also include separate lists in the sql format to be inserted, just the values of the query.
+ONLY ADD THE VALUES PRESENT IN THE JOB POSTING TEXT.
+`;
   }, [extractedText, currentTab?.url]);
 
   const copyPromptOnly = async () => {
