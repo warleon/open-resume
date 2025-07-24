@@ -21,7 +21,6 @@ const Popup: React.FC<PopupProps> = () => {
 
   React.useEffect(() => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      console.error("in useEffect, tabs: ", tabs);
       if (tabs[0]) {
         const activeTabId = tabs[0].id;
         setCurrentTab(tabs[0]);
@@ -34,10 +33,6 @@ const Popup: React.FC<PopupProps> = () => {
               args: ["body"], // you can use this to target what element to get the html for
             })
             .then((results) => {
-              console.error(
-                "in useEffect, results of HTML extraction: ",
-                results
-              );
               setCurrentTabHtml(results[0].result!);
             });
         }
@@ -46,8 +41,6 @@ const Popup: React.FC<PopupProps> = () => {
   }, []);
 
   const AIPrompt = useMemo(() => {
-    console.error("in AIPrompt, extractedText length: ", extractedText?.length);
-    console.error("in AIPrompt, extractedText: ", extractedText);
     if (extractedText && extractedText.length > 0) {
       return `Please analyze the following job posting text and extract the key requirements, skills, technologies, and qualifications mentioned. Provide a summary of:
 
@@ -112,10 +105,14 @@ ONLY ADD THE VALUES PRESENT IN THE JOB POSTING TEXT.
         currentTabHtml
       );
       setKeywordResults(result);
+      console.error(
+        "result total length: ",
+        result.keywords.length + result.jobTitles.length
+      );
       console.error("textContent length: ", textContent.length);
       setExtractedText(textContent);
       if (result.error) {
-        console.error(result.error);
+        console.error(`Error extracting keywords: ${result.error}`);
         throw new Error(result.error);
       }
     } catch (error) {
@@ -192,7 +189,7 @@ ONLY ADD THE VALUES PRESENT IN THE JOB POSTING TEXT.
         {keywordResults && (
           <>
             <div className="keyword-results">
-              {keywordResults.error && (
+              {!keywordResults.error && (
                 <div className="keywords-success">
                   <h4>✅ Keywords Extracted</h4>
                   <button className="btn btn-copy mb-2" onClick={copyKeywords}>

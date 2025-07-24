@@ -153,11 +153,6 @@ function extractKeywordsSimple(text: string): string[] {
 
 // Advanced keyword extraction
 export async function extractKeywords(url: string, htmlContent: string): Promise<{ result: KeywordExtractionResult, textContent: string }> {
-    console.error(
-        "Starting keyword extraction for HTML content:",
-        htmlContent
-    );
-
     let result: KeywordExtractionResult = {
         keywords: [],
         jobTitles: [],
@@ -166,8 +161,6 @@ export async function extractKeywords(url: string, htmlContent: string): Promise
     let textContent = "";
 
     try {
-        console.error("Attempting to extract HTML content from:", url);
-
         // Detect if this is a LinkedIn job posting
         const isLinkedInJob =
             url && url.indexOf("linkedin.com") !== -1 &&
