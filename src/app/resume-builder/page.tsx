@@ -13,7 +13,7 @@ export default function Create() {
           <div className="col-span-3">
             <ResumeForm />
           </div>
-          <div className="col-span-3 relative">
+          <div className="relative col-span-3">
             <AnalyzeResumeButton />
             <PDFPreview />
           </div>

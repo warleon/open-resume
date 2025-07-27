@@ -16,10 +16,10 @@ const AnalyzeResumeButtonComponent = () => {
   const settings = useAppSelector(selectSettings);
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentPdfBlob, setCurrentPdfBlob] = useState<Blob | null>(null);
-  
+
   // Check if JSON Resume theme is selected
   const isJsonResumeTheme = settings.jsonResumeTheme !== "default";
-  
+
   const document = useMemo(
     () => <ResumePDF resume={resume} settings={settings} isPDF={true} />,
     [resume, settings]
@@ -36,19 +36,19 @@ const AnalyzeResumeButtonComponent = () => {
       }
 
       setIsGenerating(true);
-      
+
       try {
         const jsonResume = convertToJsonResume(resume);
-        
-        const response = await fetch('/api/render-theme', {
-          method: 'POST',
+
+        const response = await fetch("/api/render-theme", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             resume: jsonResume,
             theme: settings.jsonResumeTheme,
-            format: 'pdf'
+            format: "pdf",
           }),
         });
 
@@ -56,11 +56,16 @@ const AnalyzeResumeButtonComponent = () => {
           const blob = await response.blob();
           setCurrentPdfBlob(blob);
         } else {
-          console.error('AnalyzeResumeButton: Failed to generate JSON theme PDF');
+          console.error(
+            "AnalyzeResumeButton: Failed to generate JSON theme PDF"
+          );
           setCurrentPdfBlob(null);
         }
       } catch (error) {
-        console.error('AnalyzeResumeButton: Error generating JSON theme PDF:', error);
+        console.error(
+          "AnalyzeResumeButton: Error generating JSON theme PDF:",
+          error
+        );
         setCurrentPdfBlob(null);
       } finally {
         setIsGenerating(false);
@@ -80,14 +85,17 @@ const AnalyzeResumeButtonComponent = () => {
       try {
         // Create object URL from blob for PDF.js compatibility
         const objectUrl = URL.createObjectURL(activePdfBlob);
-        
+
         // Store the object URL for the parser to use
         localStorage.setItem("generatedResumeUrl", objectUrl);
-        localStorage.setItem("generatedResumeFileName", `${resume.profile.name || "Generated"} - Resume.pdf`);
-        
+        localStorage.setItem(
+          "generatedResumeFileName",
+          `${resume.profile.name || "Generated"} - Resume.pdf`
+        );
+
         // Store the original resume data for similarity comparison
         localStorage.setItem("originalResumeData", JSON.stringify(resume));
-        
+
         // Navigate to the parser page
         router.push("/resume-parser?source=builder");
       } catch (error) {
@@ -99,14 +107,14 @@ const AnalyzeResumeButtonComponent = () => {
   const isReady = !!activePdfBlob && !isGenerating;
 
   return (
-    <div className="absolute top-1/2 -translate-y-1/2 -right-2 z-10">
+    <div className="absolute -right-2 top-1/2 z-10 -translate-y-1/2">
       <Button
         onClick={handleAnalyzeResume}
         disabled={!isReady}
-        className={`px-4 py-2 text-sm font-medium border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center gap-2 ${
-          isReady 
-            ? "text-gray-700 bg-white hover:bg-gray-50" 
-            : "text-gray-400 bg-gray-100 cursor-not-allowed"
+        className={`flex items-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+          isReady
+            ? "bg-white text-gray-700 hover:bg-gray-50"
+            : "cursor-not-allowed bg-gray-100 text-gray-400"
         }`}
       >
         <span>{isReady ? "Analyze Resume" : "Generating..."}</span>
@@ -121,4 +129,4 @@ export const AnalyzeResumeButton = dynamic(
   {
     ssr: false,
   }
-); 
+);

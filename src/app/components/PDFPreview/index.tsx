@@ -46,38 +46,38 @@ const PDFPreviewComponent = () => {
       if (!isJsonResumeTheme) return;
 
       setIsLoadingJsonTheme(true);
-      
+
       try {
         const jsonResume = convertToJsonResume(resume);
-        
-        const response = await fetch('/api/render-theme', {
-          method: 'POST',
+
+        const response = await fetch("/api/render-theme", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             resume: jsonResume,
             theme: settings.jsonResumeTheme,
-            format: 'pdf'
+            format: "pdf",
           }),
         });
 
         if (response.ok) {
           const blob = await response.blob();
-          
+
           // Clean up previous URL
           if (pdfUrl) {
             URL.revokeObjectURL(pdfUrl);
           }
-          
+
           // Create new object URL for JSON theme PDF
           const objectUrl = URL.createObjectURL(blob);
           setPdfUrl(objectUrl);
         } else {
-          console.error('PDFPreview: Failed to generate JSON theme PDF');
+          console.error("PDFPreview: Failed to generate JSON theme PDF");
         }
       } catch (error) {
-        console.error('PDFPreview: Error generating JSON theme PDF:', error);
+        console.error("PDFPreview: Error generating JSON theme PDF:", error);
       } finally {
         setIsLoadingJsonTheme(false);
       }
@@ -91,7 +91,7 @@ const PDFPreviewComponent = () => {
   // Update PDF when document changes (for default theme only)
   useEffect(() => {
     if (!isJsonResumeTheme) {
-      update();
+      update(document);
     }
   }, [update, document, isJsonResumeTheme]);
 
@@ -102,7 +102,7 @@ const PDFPreviewComponent = () => {
       if (pdfUrl) {
         URL.revokeObjectURL(pdfUrl);
       }
-      
+
       // Create new object URL
       const objectUrl = URL.createObjectURL(instance.blob);
       setPdfUrl(objectUrl);
@@ -122,14 +122,15 @@ const PDFPreviewComponent = () => {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (!target.closest('.json-export-dropdown')) {
+      if (!target.closest(".json-export-dropdown")) {
         setIsDropdownOpen(false);
       }
     };
 
     if (isDropdownOpen) {
-      window.document.addEventListener('click', handleClickOutside);
-      return () => window.document.removeEventListener('click', handleClickOutside);
+      window.document.addEventListener("click", handleClickOutside);
+      return () =>
+        window.document.removeEventListener("click", handleClickOutside);
     }
   }, [isDropdownOpen]);
 
@@ -138,8 +139,9 @@ const PDFPreviewComponent = () => {
   const downloadJson = () => {
     const jsonResume = convertToJsonResume(resume);
     const jsonResumeWithSchema = {
-      "$schema": "https://raw.githubusercontent.com/jsonresume/resume-schema/v1.0.0/schema.json",
-      ...jsonResume
+      $schema:
+        "https://raw.githubusercontent.com/jsonresume/resume-schema/v1.0.0/schema.json",
+      ...jsonResume,
     };
     const jsonData = JSON.stringify(jsonResumeWithSchema, null, 2);
     const blob = new Blob([jsonData], { type: "application/json" });
@@ -157,8 +159,9 @@ const PDFPreviewComponent = () => {
   const copyJsonToClipboard = async () => {
     const jsonResume = convertToJsonResume(resume);
     const jsonResumeWithSchema = {
-      "$schema": "https://raw.githubusercontent.com/jsonresume/resume-schema/v1.0.0/schema.json",
-      ...jsonResume
+      $schema:
+        "https://raw.githubusercontent.com/jsonresume/resume-schema/v1.0.0/schema.json",
+      ...jsonResume,
     };
     const jsonData = JSON.stringify(jsonResumeWithSchema, null, 2);
     try {
@@ -182,28 +185,29 @@ const PDFPreviewComponent = () => {
       <div className="relative flex justify-center">
         <div className="relative w-full">
           <section className="h-[calc(100vh-var(--top-nav-bar-height)-var(--resume-control-bar-height))] overflow-hidden md:p-[var(--resume-padding)]">
-            <div 
-              className="w-full h-full mx-auto"
-            >
+            <div className="mx-auto h-full w-full">
               {pdfUrl ? (
-                <iframe 
-                  src={`${pdfUrl}#navpanes=0`} 
-                  className="h-full w-full border border-gray-300 rounded-md" 
-                  title={isJsonResumeTheme ? `JSON Resume - ${settings.jsonResumeTheme} theme` : "Resume PDF Preview"}
+                <iframe
+                  src={`${pdfUrl}#navpanes=0`}
+                  className="h-full w-full rounded-md border border-gray-300"
+                  title={
+                    isJsonResumeTheme
+                      ? `JSON Resume - ${settings.jsonResumeTheme} theme`
+                      : "Resume PDF Preview"
+                  }
                 />
               ) : (
-                <div className="h-full w-full border border-gray-300 rounded-md bg-gray-100 flex items-center justify-center">
+                <div className="flex h-full w-full items-center justify-center rounded-md border border-gray-300 bg-gray-100">
                   <div className="text-gray-500">
-                    {isLoadingJsonTheme 
-                      ? `Generating ${settings.jsonResumeTheme} theme preview...` 
-                      : "Generating PDF preview..."
-                    }
+                    {isLoadingJsonTheme
+                      ? `Generating ${settings.jsonResumeTheme} theme preview...`
+                      : "Generating PDF preview..."}
                   </div>
                 </div>
               )}
             </div>
           </section>
-          
+
           {/* Control Bar */}
           <div className="sticky bottom-0 left-0 right-0 flex h-[var(--resume-control-bar-height)] items-center justify-center px-[var(--resume-padding)] text-gray-600">
             <div className="ml-1 flex items-center gap-2 lg:ml-8">
@@ -211,13 +215,19 @@ const PDFPreviewComponent = () => {
               <a
                 className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-0.5 hover:bg-gray-100"
                 href={isJsonResumeTheme ? pdfUrl || "#" : instance.url!}
-                download={isJsonResumeTheme ? `${resume.profile.name || 'Resume'} - ${settings.jsonResumeTheme}.pdf` : fileName}
+                download={
+                  isJsonResumeTheme
+                    ? `${resume.profile.name || "Resume"} - ${
+                        settings.jsonResumeTheme
+                      }.pdf`
+                    : fileName
+                }
               >
                 <ArrowDownTrayIcon className="h-4 w-4" />
                 <span className="whitespace-nowrap">Download Resume</span>
               </a>
               {/* Export JSON Button with Dropdown */}
-              <div className="relative json-export-dropdown">
+              <div className="json-export-dropdown relative">
                 <button
                   className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-0.5 hover:bg-gray-100"
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -226,7 +236,7 @@ const PDFPreviewComponent = () => {
                   <span className="whitespace-nowrap">Export JSON</span>
                   <ChevronDownIcon className="h-3 w-3" />
                 </button>
-                
+
                 {isDropdownOpen && (
                   <div className="absolute bottom-full right-0 mb-1 w-48 rounded-md border border-gray-300 bg-white shadow-lg">
                     <button
@@ -258,9 +268,6 @@ const PDFPreviewComponent = () => {
 /**
  * Load PDFPreview client side since it uses usePDF, which is a web specific API
  */
-export const PDFPreview = dynamic(
-  () => Promise.resolve(PDFPreviewComponent),
-  {
-    ssr: false,
-  }
-); 
+export const PDFPreview = dynamic(() => Promise.resolve(PDFPreviewComponent), {
+  ssr: false,
+});

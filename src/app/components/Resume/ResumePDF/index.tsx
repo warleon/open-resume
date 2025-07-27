@@ -42,8 +42,21 @@ export const ResumePDF = ({
   settings: Settings;
   isPDF?: boolean;
 }) => {
-  const { profile, workExperiences, educations, projects, skills, custom, volunteer, awards, certificates, publications, languages, interests, references } =
-    resume;
+  const {
+    profile,
+    workExperiences,
+    educations,
+    projects,
+    skills,
+    custom,
+    volunteer,
+    awards,
+    certificates,
+    publications,
+    languages,
+    interests,
+    references,
+  } = resume;
   const { name } = profile;
   const {
     fontFamily,

@@ -12,6 +12,7 @@ const nextConfig = {
 
   experimental: {
     //useCache: true,
+    esmExternals: 'loose'
   },
 
   serverExternalPackages: ["drizzle-orm", "@libsql/client"],
