@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, cloneElement } from "react";
 import { useAppSelector } from "lib/redux/hooks";
 import { selectResume } from "lib/redux/resumeSlice";
 import { selectSettings } from "lib/redux/settingsSlice";
@@ -93,7 +93,10 @@ const PDFPreviewComponent = () => {
     if (!isJsonResumeTheme) {
       update(document);
     }
-  }, [update, document, isJsonResumeTheme]);
+  }, [update, document, isJsonResumeTheme, resume, settings]);
+  useEffect(() => {
+    console.log(instance.error);
+  }, [instance]);
 
   // Create object URL when PDF blob is ready (for default theme only)
   useEffect(() => {
