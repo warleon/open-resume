@@ -183,7 +183,7 @@ function ResumeParser() {
             <Heading className="text-primary !mt-4">
               Resume Parser Playground
             </Heading>
-            {isFromBuilder ? (
+            {isFromBuilder && (
               <div className="mb-6 rounded-md border border-blue-200 bg-blue-50 p-4">
                 <Paragraph smallMarginTop={true}>
                   <span className="font-semibold text-blue-800">
@@ -325,41 +325,40 @@ function ResumeParser() {
                   </div>
                 )}
               </div>
-            ) : (
-              <Paragraph smallMarginTop={true}>
-                This playground showcases the OpenResume resume parser and its
-                ability to parse information from a resume PDF. Click around the
-                PDF examples below to observe different parsing results.
-              </Paragraph>
-            )}
-            {!isFromBuilder && (
-              <div className="mt-3 flex gap-3">
-                {resumeExamples.map((example, idx) => (
-                  <article
-                    key={idx}
-                    className={cx(
-                      "flex-1 cursor-pointer rounded-md border-2 px-4 py-3 shadow-sm outline-none hover:bg-gray-50 focus:bg-gray-50",
-                      example.fileUrl === fileUrl
-                        ? "border-blue-400"
-                        : "border-gray-300"
-                    )}
-                    onClick={() => setFileUrl(example.fileUrl)}
-                    onKeyDown={(e) => {
-                      if (["Enter", " "].includes(e.key))
-                        setFileUrl(example.fileUrl);
-                    }}
-                    tabIndex={0}
-                  >
-                    <h1 className="font-semibold">Resume Example {idx + 1}</h1>
-                    <p className="mt-2 text-sm text-gray-500">
-                      {example.description}
-                    </p>
-                  </article>
-                ))}
-              </div>
             )}
             {!isFromBuilder && (
               <>
+                <Paragraph smallMarginTop={true}>
+                  This playground showcases the OpenResume resume parser and its
+                  ability to parse information from a resume PDF. Click around
+                  the PDF examples below to observe different parsing results.
+                </Paragraph>
+                <div className="mt-3 flex gap-3">
+                  {resumeExamples.map((example, idx) => (
+                    <article
+                      key={idx}
+                      className={cx(
+                        "flex-1 cursor-pointer rounded-md border-2 px-4 py-3 shadow-sm outline-none hover:bg-gray-50 focus:bg-gray-50",
+                        example.fileUrl === fileUrl
+                          ? "border-blue-400"
+                          : "border-gray-300"
+                      )}
+                      onClick={() => setFileUrl(example.fileUrl)}
+                      onKeyDown={(e) => {
+                        if (["Enter", " "].includes(e.key))
+                          setFileUrl(example.fileUrl);
+                      }}
+                      tabIndex={0}
+                    >
+                      <h1 className="font-semibold">
+                        Resume Example {idx + 1}
+                      </h1>
+                      <p className="mt-2 text-sm text-gray-500">
+                        {example.description}
+                      </p>
+                    </article>
+                  ))}
+                </div>
                 <Paragraph>
                   You can also{" "}
                   <span className="font-semibold">add your resume below</span>{" "}

@@ -16,7 +16,7 @@ import { ResumePDFReferences } from "components/Resume/ResumePDF/ResumePDFRefere
 import { DEFAULT_FONT_COLOR } from "lib/redux/settingsSlice";
 import type { Settings, ShowForm } from "lib/redux/settingsSlice";
 import type { Resume } from "lib/redux/types";
-//import { SuppressResumePDFErrorMessage } from "components/Resume/ResumePDF/common/SuppressResumePDFErrorMessage";
+import { SuppressResumePDFErrorMessage } from "components/Resume/ResumePDF/common/SuppressResumePDFErrorMessage";
 
 /**
  * Note: ResumePDF is supposed to be rendered inside PDFViewer. However,
@@ -163,42 +163,45 @@ export const ResumePDF = ({
   };
 
   return (
-    <Document title={`${name} Resume`} author={name} producer={"OpenResume"}>
-      <Page
-        size={documentSize === "A4" ? "A4" : "LETTER"}
-        style={{
-          ...styles.flexCol,
-          color: DEFAULT_FONT_COLOR,
-          fontFamily,
-          fontSize: fontSize + "pt",
-        }}
-      >
-        {Boolean(settings.themeColor) && (
-          <View
-            style={{
-              width: spacing["full"],
-              height: spacing[3.5],
-              backgroundColor: themeColor,
-            }}
-          />
-        )}
-        <View
+    <>
+      <Document title={`${name} Resume`} author={name} producer={"OpenResume"}>
+        <Page
+          size={documentSize === "A4" ? "A4" : "LETTER"}
           style={{
             ...styles.flexCol,
-            padding: `${spacing[0]} ${spacing[20]}`,
+            color: DEFAULT_FONT_COLOR,
+            fontFamily,
+            fontSize: fontSize + "pt",
           }}
         >
-          <ResumePDFProfile
-            profile={profile}
-            themeColor={themeColor}
-            isPDF={isPDF}
-          />
-          {showFormsOrder.map((form) => {
-            const Component = formTypeToComponent[form];
-            return <Component key={form} />;
-          })}
-        </View>
-      </Page>
-    </Document>
+          {Boolean(settings.themeColor) && (
+            <View
+              style={{
+                width: spacing["full"],
+                height: spacing[3.5],
+                backgroundColor: themeColor,
+              }}
+            />
+          )}
+          <View
+            style={{
+              ...styles.flexCol,
+              padding: `${spacing[0]} ${spacing[20]}`,
+            }}
+          >
+            <ResumePDFProfile
+              profile={profile}
+              themeColor={themeColor}
+              isPDF={isPDF}
+            />
+            {showFormsOrder.map((form) => {
+              const Component = formTypeToComponent[form];
+              return <Component key={form} />;
+            })}
+          </View>
+        </Page>
+      </Document>
+      <SuppressResumePDFErrorMessage />
+    </>
   );
 };
