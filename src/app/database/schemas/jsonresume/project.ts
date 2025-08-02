@@ -1,6 +1,8 @@
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { cuid2 } from "drizzle-cuid2/dist/sqlite-core";
 
 export const project = sqliteTable("project", {
+  id: cuid2("id").defaultRandom().primaryKey(),
   name: text("name"),
   description: text("description"),
   startDate: text("start_date"),

@@ -1,6 +1,8 @@
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { cuid2 } from "drizzle-cuid2/dist/sqlite-core";
 
 export const location = sqliteTable("location", {
+  id: cuid2("id").defaultRandom().primaryKey(),
   address: text("address"),
   postalCode: text("postalCode"),
   city: text("city"),

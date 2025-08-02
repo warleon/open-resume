@@ -15,3 +15,5 @@ export * from "./publication";
 export * from "./reference";
 export * from "./role";
 export * from "./skills";
+
+import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";

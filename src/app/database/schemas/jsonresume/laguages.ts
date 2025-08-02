@@ -1,6 +1,8 @@
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { cuid2 } from "drizzle-cuid2/dist/sqlite-core";
 
 export const language = sqliteTable("language", {
+  id: cuid2("id").defaultRandom().primaryKey(),
   language: text("language"),
   fluency: text("fluency"),
   // TODO link to user or resume
