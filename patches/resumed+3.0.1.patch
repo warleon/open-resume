@@ -1,0 +1,17 @@
+diff --git a/node_modules/resumed/package.json b/node_modules/resumed/package.json
+index c26be7b..ec2223c 100644
+--- a/node_modules/resumed/package.json
++++ b/node_modules/resumed/package.json
+@@ -28,7 +28,11 @@
+     "url": "https://rbardini.com/"
+   },
+   "type": "module",
+-  "exports": "./dist/resumed.js",
++  "exports": {
++    "default": "./dist/resumed.js",
++    "require": "./dist/resumed.js",
++    "types":"./dist/index.d.ts"
++  },
+   "typings": "./dist/index.d.ts",
+   "bin": "./bin/resumed.js",
+   "files": [

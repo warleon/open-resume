@@ -1,5 +1,5 @@
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
-import { cuid2 } from "drizzle-cuid2/dist/sqlite-core";
+import { cuid2 } from "drizzle-cuid2/sqlite";
 
 //TODO link to project
 export const role = sqliteTable("role", {

@@ -31,7 +31,7 @@ const ResumeControlBar = ({
     setScale,
     documentSize,
   });
-  
+
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const resume = useAppSelector(selectResume);
 
@@ -39,14 +39,15 @@ const ResumeControlBar = ({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (!target.closest('.json-export-dropdown')) {
+      if (!target.closest(".json-export-dropdown")) {
         setIsDropdownOpen(false);
       }
     };
 
     if (isDropdownOpen) {
-      window.document.addEventListener('click', handleClickOutside);
-      return () => window.document.removeEventListener('click', handleClickOutside);
+      window.document.addEventListener("click", handleClickOutside);
+      return () =>
+        window.document.removeEventListener("click", handleClickOutside);
     }
   }, [isDropdownOpen]);
 
@@ -54,14 +55,15 @@ const ResumeControlBar = ({
 
   // Hook to update pdf when document changes
   useEffect(() => {
-    update();
+    update(document);
   }, [update, document]);
 
   const downloadJson = () => {
     const jsonResume = convertToJsonResume(resume);
     const jsonResumeWithSchema = {
-      "$schema": "https://raw.githubusercontent.com/jsonresume/resume-schema/v1.0.0/schema.json",
-      ...jsonResume
+      $schema:
+        "https://raw.githubusercontent.com/jsonresume/resume-schema/v1.0.0/schema.json",
+      ...jsonResume,
     };
     const jsonData = JSON.stringify(jsonResumeWithSchema, null, 2);
     const blob = new Blob([jsonData], { type: "application/json" });
@@ -79,8 +81,9 @@ const ResumeControlBar = ({
   const copyJsonToClipboard = async () => {
     const jsonResume = convertToJsonResume(resume);
     const jsonResumeWithSchema = {
-      "$schema": "https://raw.githubusercontent.com/jsonresume/resume-schema/v1.0.0/schema.json",
-      ...jsonResume
+      $schema:
+        "https://raw.githubusercontent.com/jsonresume/resume-schema/v1.0.0/schema.json",
+      ...jsonResume,
     };
     const jsonData = JSON.stringify(jsonResumeWithSchema, null, 2);
     try {
@@ -137,7 +140,7 @@ const ResumeControlBar = ({
           <span className="whitespace-nowrap">Download Resume</span>
         </a>
         {/* Export JSON Button with Dropdown */}
-        <div className="relative json-export-dropdown">
+        <div className="json-export-dropdown relative">
           <button
             className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-0.5 hover:bg-gray-100"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -146,7 +149,7 @@ const ResumeControlBar = ({
             <span className="whitespace-nowrap">Export JSON</span>
             <ChevronDownIcon className="h-3 w-3" />
           </button>
-          
+
           {isDropdownOpen && (
             <div className="absolute bottom-full right-0 mb-1 w-48 rounded-md border border-gray-300 bg-white shadow-lg">
               <button
@@ -166,7 +169,6 @@ const ResumeControlBar = ({
             </div>
           )}
         </div>
-
       </div>
     </div>
   );
