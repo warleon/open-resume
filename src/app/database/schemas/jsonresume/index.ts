@@ -1,3 +1,5 @@
+export * from "./joins";
+
 export * from "./basics";
 export * from "./location";
 export * from "./profile";
@@ -15,5 +17,3 @@ export * from "./publication";
 export * from "./reference";
 export * from "./role";
 export * from "./skill";
-
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
