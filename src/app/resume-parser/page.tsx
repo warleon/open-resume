@@ -18,6 +18,7 @@ import {
   getSemaphoreColor,
 } from "lib/resume-similarity";
 import type { Resume } from "lib/redux/types";
+import { Examples } from "./Examples";
 
 const RESUME_EXAMPLES = [
   {
@@ -42,12 +43,8 @@ const RESUME_EXAMPLES = [
   },
 ];
 
-let CURRENT_RESUME_EXAMPLES = [...RESUME_EXAMPLES];
-
-const defaultFileUrl = RESUME_EXAMPLES[0]["fileUrl"];
-
-// Helper function to get initial file URL
 const getInitialFileUrl = (isFromBuilder: boolean) => {
+  const defaultFileUrl = RESUME_EXAMPLES[0]["fileUrl"];
   if (isFromBuilder) {
     const generatedUrl = localStorage.getItem("generatedResumeUrl");
     return generatedUrl || defaultFileUrl;
@@ -63,28 +60,10 @@ const useIsFromBuilder = () => {
 function ResumeParser() {
   const router = useRouter();
   const isFromBuilder = useIsFromBuilder();
+  const [textItems, setTextItems] = useState<TextItems>([]);
   const [fileUrl, setFileUrl] = useState(() =>
     getInitialFileUrl(isFromBuilder)
   );
-  const [textItems, setTextItems] = useState<TextItems>([]);
-  const [resumeExamples, setResumeExamples] = useState(() => {
-    if (isFromBuilder) {
-      const generatedUrl = localStorage.getItem("generatedResumeUrl");
-      if (generatedUrl) {
-        const generatedExample = {
-          fileUrl: generatedUrl,
-          description: (
-            <span>
-              Generated from OpenResume builder -{" "}
-              <Link href="/resume-builder">Return to builder</Link>
-            </span>
-          ),
-        };
-        return [generatedExample, ...RESUME_EXAMPLES];
-      }
-    }
-    return CURRENT_RESUME_EXAMPLES;
-  });
 
   const lines = groupTextItemsIntoLines(textItems || []);
   const sections = groupLinesIntoSections(lines);
@@ -327,57 +306,9 @@ function ResumeParser() {
               </div>
             )}
             {!isFromBuilder && (
-              <>
-                <Paragraph smallMarginTop={true}>
-                  This playground showcases the OpenResume resume parser and its
-                  ability to parse information from a resume PDF. Click around
-                  the PDF examples below to observe different parsing results.
-                </Paragraph>
-                <div className="mt-3 flex gap-3">
-                  {resumeExamples.map((example, idx) => (
-                    <article
-                      key={idx}
-                      className={cx(
-                        "flex-1 cursor-pointer rounded-md border-2 px-4 py-3 shadow-sm outline-none hover:bg-gray-50 focus:bg-gray-50",
-                        example.fileUrl === fileUrl
-                          ? "border-blue-400"
-                          : "border-gray-300"
-                      )}
-                      onClick={() => setFileUrl(example.fileUrl)}
-                      onKeyDown={(e) => {
-                        if (["Enter", " "].includes(e.key))
-                          setFileUrl(example.fileUrl);
-                      }}
-                      tabIndex={0}
-                    >
-                      <h1 className="font-semibold">
-                        Resume Example {idx + 1}
-                      </h1>
-                      <p className="mt-2 text-sm text-gray-500">
-                        {example.description}
-                      </p>
-                    </article>
-                  ))}
-                </div>
-                <Paragraph>
-                  You can also{" "}
-                  <span className="font-semibold">add your resume below</span>{" "}
-                  to access how well your resume would be parsed by similar
-                  Application Tracking Systems (ATS) used in job applications.
-                  The more information it can parse out, the better it indicates
-                  the resume is well formatted and easy to read. It is
-                  beneficial to have the name and email accurately parsed at the
-                  very least.
-                </Paragraph>
-                <div className="mt-3">
-                  <ResumeDropzone
-                    onFileUrlChange={(fileUrl) =>
-                      setFileUrl(fileUrl || defaultFileUrl)
-                    }
-                    playgroundView={true}
-                  />
-                </div>
-              </>
+              <Examples
+                {...{ fileUrl, isFromBuilder, RESUME_EXAMPLES, setFileUrl }}
+              ></Examples>
             )}
             <Heading level={2} className="!mt-[1.2em]">
               Resume Parsing Results
